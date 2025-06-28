@@ -104,19 +104,21 @@
         .dropdown-item input[type="checkbox"] { margin-right: 0.5rem; border-radius: 0.25rem; border-color: #444; color: var(--accent-color); background-color: #222; }
         .dropdown-item input[type="checkbox"]:checked { background-color: var(--accent-color); }
         
+        /* Flatpickr Theme Override */
         .flatpickr-calendar { background: #111; border-color: var(--border-color); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
-        .flatpickr-day { color: var(--text-primary); }
-        .flatpickr-day:hover { background: #222; }
+        .flatpickr-day, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: var(--text-primary); }
+        .flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover { background: #222; border-color: #222;}
         .flatpickr-day.selected { background: var(--accent-color); border-color: var(--accent-color); color: var(--text-on-accent); }
-        .flatpickr-time input.flatpickr-hour, .flatpickr-time input.flatpickr-minute { color: var(--text-primary); }
-        span.flatpickr-weekday { color: var(--text-secondary); }
+        .flatpickr-time input.flatpickr-hour, .flatpickr-time input.flatpickr-minute, .flatpickr-time .flatpickr-am-pm { color: var(--text-primary); }
+        span.flatpickr-weekday, .numInput, .numInputWrapper span { color: var(--text-secondary); }
+        .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--text-primary); }
 
         table thead { background-color: #1a1a1a; color: var(--text-secondary); }
         table tbody tr { border-bottom: 1px solid var(--border-color); }
         table tbody tr:last-child { border-bottom: none; }
         table tbody tr:hover { background-color: #1a1a1a; }
         
-        .text-gradient { color: var(--text-primary); } /* Removed gradient for minimalist look */
+        .text-gradient { color: var(--text-primary); }
         .sortable-ghost { background: #222; }
         .sortable-chosen { cursor: grabbing; }
     </style>
@@ -735,23 +737,19 @@
 
         // --- Event Listener Setup ---
         function setupGlobalEventListeners() {
-            // General dropdown logic
             document.body.addEventListener('click', (e) => {
                 const trigger = e.target.closest('.dropdown-trigger');
                 
-                // Close all active dropdowns except the one being interacted with
                 document.querySelectorAll('.dropdown-menu.active').forEach(menu => {
-                    // Check if the click is outside the current dropdown's parent element
                     if (!menu.parentElement.contains(e.target)) {
                         menu.classList.remove('active', 'up');
                     }
                 });
 
                 if (trigger) {
+                    e.stopPropagation(); 
                     const menuToToggle = trigger.nextElementSibling;
                     if (menuToToggle) {
-                        // Prevent body click from closing the menu immediately
-                        e.stopPropagation(); 
                         const isActive = menuToToggle.classList.toggle('active');
                         if (isActive) {
                              const rect = trigger.getBoundingClientRect();
@@ -817,20 +815,12 @@
             }
 
             if (target.closest('.dropdown-menu[data-type="category"]')) {
-                // If a checkbox is clicked inside the category dropdown, update immediately
                 if (target.matches('input[type="checkbox"]')) {
-                    const menu = target.closest('.dropdown-menu');
-                    const trigger = menu.previousElementSibling;
-                    const productId = menu.dataset.id;
-                    const selected = Array.from(menu.querySelectorAll('input:checked')).map(cb => cb.value);
-                    trigger.textContent = selected.join(', ') || 'Select Category';
-                    updateProductField(productId, 'category', selected.join(','));
+                     e.stopPropagation(); // Keep menu open for multi-select
                 }
-                // Prevent the dropdown from closing when interacting inside
-                e.stopPropagation(); 
                 return;
             }
-
+            
             if (target.classList.contains('product-checkbox')) updateBulkActionBar();
             else if (target.classList.contains('discount-toggle')) toggleDiscount(id, target.checked);
             else if (target.closest('.edit-product-btn')) openEditModal(id);
@@ -853,8 +843,6 @@
             if (selectedIds.length === 0) return showAlert('Please select products to delete.', true);
             if (confirm(`Are you sure you want to delete ${selectedIds.length} selected products? This action is irreversible.`)) {
                 showLoading(true);
-                // A soft delete is generally safer. We update `is_active` to false.
-                // To permanently delete, use: await db.from('products').delete().in('id', selectedIds);
                 await db.from('products').update({ is_active: false }).in('id', selectedIds);
                 await loadProducts();
                 showLoading(false);
