@@ -168,10 +168,28 @@
             opacity: 1;
             transform: translateY(0);
         }
+        .social-sidebar-icon {
+            display: block;
+            width: 48px;
+            height: 48px;
+            transition: transform 0.3s ease;
+        }
+        .social-sidebar-icon:hover {
+            transform: scale(1.1);
+        }
+        .social-sidebar-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: 9999px;
+            object-fit: cover;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="antialiased">
     
+    <div id="social-sidebar" class="fixed right-4 top-1/2 -translate-y-1/2 z-40 flex-col items-center space-y-4 hidden md:flex"></div>
+
     <header class="header sticky top-0 z-30">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
@@ -216,7 +234,8 @@
             <div class="text-center">
                 <p class="font-bold text-lg">Frank's Spreadsheet</p>
                 <p class="text-sm text-gray-400 mt-2 max-w-md mx-auto">A curated collection of the finest goods. Join us to find your next perfect pair.</p>
-                <div id="social-icons-container" class="flex justify-center items-center space-x-4 mt-6"></div>
+                <!-- Mobile social icons will appear here -->
+                <div id="social-footer-container" class="flex md:hidden justify-center items-center space-x-4 mt-6"></div>
             </div>
             <div class="mt-10 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
                 <p>&copy; 2025 Frank's Spreadsheet. All Rights Reserved.</p>
@@ -375,15 +394,26 @@
                     mainNavContainer.innerHTML = homeLink + brandDropdownHTML;
                 }
 
-                // Render Social Icons in Footer
-                const socialContainer = document.getElementById('social-icons-container');
-                if (socialContainer && socialLinks) {
-                    socialContainer.innerHTML = ''; 
+                // Render Social Icons
+                const socialSidebar = document.getElementById('social-sidebar');
+                const socialFooter = document.getElementById('social-footer-container');
+                if (socialLinks && socialLinks.length > 0) {
+                    if (socialSidebar) socialSidebar.innerHTML = '';
+                    if (socialFooter) socialFooter.innerHTML = '';
+
                     socialLinks.forEach(link => {
-                        const iconElement = `<img src="${link.icon_url}" alt="${link.platform_name} logo" class="w-6 h-6 object-cover rounded-full">`;
+                        const iconImage = `<img src="${link.icon_url}" alt="${link.platform_name} logo" class="w-full h-full object-cover rounded-full">`;
                         let finalUrl = link.link_url || '#';
                         if (finalUrl !== '#' && !finalUrl.startsWith('http')) finalUrl = `https://${finalUrl}`;
-                        socialContainer.innerHTML += `<a href="${finalUrl}" target="_blank" class="text-gray-400 hover:text-white transition-colors">${iconElement}</a>`;
+                        
+                        // Add to sidebar for desktop
+                        if (socialSidebar) {
+                            socialSidebar.innerHTML += `<a href="${finalUrl}" target="_blank" class="social-sidebar-icon" title="${link.platform_name}">${iconImage}</a>`;
+                        }
+                        // Add to footer for mobile
+                        if (socialFooter) {
+                            socialFooter.innerHTML += `<a href="${finalUrl}" target="_blank" class="text-gray-400 hover:text-white transition-colors"><div class="w-8 h-8">${iconImage}</div></a>`;
+                        }
                     });
                 }
                 
