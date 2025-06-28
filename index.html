@@ -17,6 +17,19 @@
             background-color: #0D0D0D;
             color: #F9FAFB;
         }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1533134486753-c833f0ed4866?q=80&w=2940&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center center;
+            opacity: 0.1;
+            z-index: -1;
+        }
         .header {
             background-color: rgba(13, 13, 13, 0.8);
             backdrop-filter: blur(10px);
