@@ -50,7 +50,7 @@
             background: #FFFFFF;
             transition: width 0.3s ease;
         }
-        .nav-link:hover:after {
+        .nav-link.active:after, .nav-link:hover:after {
             width: 100%;
             left: 0;
         }
@@ -127,27 +127,6 @@
             color: #0D0D0D;
             border-color: #FFFFFF;
         }
-        .brand-dropdown { position: relative; }
-        .brand-dropdown-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: #1a1a1a;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.5rem;
-            z-index: 40;
-            min-width: 150px;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-        }
-        .brand-dropdown.active .brand-dropdown-menu { display: block; }
-        .brand-dropdown-item {
-            padding: 0.5rem 0.75rem;
-            cursor: pointer;
-            border-radius: 0.25rem;
-        }
-        .brand-dropdown-item:hover { background: rgba(255, 255, 255, 0.1); }
         .timer-box {
             text-align: center;
         }
@@ -181,7 +160,7 @@
             opacity: 1;
             transform: translateY(0);
         }
-        .social-sidebar-icon {
+         .social-sidebar-icon {
             display: block;
             width: 48px;
             height: 48px;
@@ -214,11 +193,14 @@
 
     <main class="container mx-auto px-4 sm:px-6 lg:px-8">
         
-        <section id="hero-section" class="text-center py-20 md:py-32 fade-in-up">
-            <h1 id="site-title" class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight"></h1>
-            <p id="site-subtitle" class="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-400"></p>
-            <div class="mt-8">
-                <a href="#product-section" class="btn btn-primary">Shop Now</a>
+        <section id="hero-section" class="text-center py-20 md:py-32 fade-in-up relative overflow-hidden rounded-lg">
+             <div id="hero-bg" class="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-500 opacity-20"></div>
+            <div class="relative">
+                <h1 id="site-title" class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight"></h1>
+                <p id="site-subtitle" class="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-400"></p>
+                <div class="mt-8">
+                    <a href="#product-section" class="btn btn-primary">Shop Now</a>
+                </div>
             </div>
         </section>
 
@@ -247,7 +229,6 @@
             <div class="text-center">
                 <p class="font-bold text-lg">Frank's Spreadsheet</p>
                 <p class="text-sm text-gray-400 mt-2 max-w-md mx-auto">A curated collection of the finest goods. Join us to find your next perfect pair.</p>
-                <!-- Mobile social icons will appear here -->
                 <div id="social-footer-container" class="flex md:hidden justify-center items-center space-x-4 mt-6"></div>
             </div>
             <div class="mt-10 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
@@ -265,7 +246,7 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        let allProducts = [], currentCategoryFilter = 'all', currentBrandFilter = 'all';
+        let allProducts = [], currentCategoryFilter = 'all', currentTagFilter = 'all';
         let cnyToUsdRate = 0.14, userCountryCode = null;
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -334,12 +315,14 @@
         // Filter the main product list and re-render
         function applyFiltersAndRender() {
             let filteredProducts = allProducts;
+            
             if (currentCategoryFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter));
             }
-            if (currentBrandFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => p.brand_id == currentBrandFilter);
+            if (currentTagFilter !== 'all') {
+                filteredProducts = filteredProducts.filter(p => p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter));
             }
+            
             renderProducts('product-list-container', filteredProducts);
         }
 
@@ -353,21 +336,21 @@
                 } catch (rateError) { console.error('Error fetching exchange rate:', rateError); }
 
                 // Fetch all data in parallel
-                const [settingsRes, navRes, socialRes, productsRes, brandsRes, flashSaleSettingsRes, flashSaleProductsRes] = await Promise.all([
+                const [settingsRes, navRes, tagsRes, socialRes, productsRes, flashSaleSettingsRes, flashSaleProductsRes] = await Promise.all([
                     db.from('settings').select('*').limit(1).single(),
                     db.from('navigation').select('*').order('display_order'),
+                    db.from('product_tags').select('*').order('display_order'),
                     db.from('social_links').select('*').order('display_order'),
-                    db.from('products').select(`*, brands (*)`).eq('is_active', true).order('display_order'),
-                    db.from('brands').select('*').order('name'),
+                    db.from('products').select(`*`).eq('is_active', true).order('display_order'),
                     db.from('flash_sale_settings').select('*').single(),
-                    db.from('flash_sale_products').select('*, products(*, brands(*))').order('display_order')
+                    db.from('flash_sale_products').select('*, products(*)').order('display_order')
                 ]);
 
                 allProducts = productsRes.data || [];
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
+                const tags = tagsRes.data || [];
                 const socialLinks = socialRes.data;
-                const brands = brandsRes.data || [];
                 const flashSaleSettings = flashSaleSettingsRes.data;
                 const flashSaleProducts = (flashSaleProductsRes.data || []).map(item => item.products).filter(Boolean);
 
@@ -382,29 +365,22 @@
                     }
                 }
 
-                // Render Hero section content
+                // Render Hero section content and background
                 if (settings) {
                     document.title = settings.site_title || "Frank's Spreadsheet";
                     document.getElementById('site-title').textContent = settings.site_title || 'Discover Your Style';
                     document.getElementById('site-subtitle').textContent = settings.site_subtitle || 'The best finds, curated for you.';
+                    if (settings.hero_background_url) {
+                        document.getElementById('hero-bg').style.backgroundImage = `url(${settings.hero_background_url})`;
+                    }
                 }
                 
-                // Render Navigation and Brand Dropdown
+                // Render Navigation
                 const mainNavContainer = document.getElementById('main-nav');
                 if (mainNavContainer) {
-                    const homeLink = `<a href="/" class="nav-link text-sm font-medium hidden md:block">Home</a>`;
-                    const brandDropdownHTML = `
-                        <div class="brand-dropdown">
-                            <button class="nav-trigger text-sm font-medium flex items-center gap-2">
-                                <span class="nav-link">Brands</span>
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                            </button>
-                            <div class="brand-dropdown-menu">
-                                <div class="brand-dropdown-item" data-brand="all">All Brands</div>
-                                ${brands.map(brand => `<div class="brand-dropdown-item" data-brand="${brand.id}">${brand.name}</div>`).join('')}
-                            </div>
-                        </div>`;
-                    mainNavContainer.innerHTML = homeLink + brandDropdownHTML;
+                    const homeLink = `<a href="/" class="nav-link text-sm font-medium">Home</a>`;
+                    const tagLinks = tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
+                    mainNavContainer.innerHTML = homeLink + tagLinks;
                 }
 
                 // Render Social Icons
@@ -479,36 +455,26 @@
                     categoryContainer.querySelector('.active')?.classList.remove('active');
                     button.classList.add('active');
                     currentCategoryFilter = button.dataset.category;
+                    currentTagFilter = 'all'; // Reset tag filter
+                    document.querySelectorAll('#main-nav .nav-link.active').forEach(el => el.classList.remove('active'));
                     applyFiltersAndRender();
                 }
             });
             
-            // Handle brand dropdown logic
-            const brandDropdown = document.querySelector('.brand-dropdown');
-            if (brandDropdown) {
-                const trigger = brandDropdown.querySelector('.nav-trigger');
-                const menu = brandDropdown.querySelector('.brand-dropdown-menu');
-                trigger?.addEventListener('click', e => { e.stopPropagation(); brandDropdown.classList.toggle('active'); });
-                menu?.addEventListener('click', e => {
-                    const item = e.target.closest('.brand-dropdown-item');
-                    if(item) {
-                        currentBrandFilter = item.dataset.brand;
-                        const selectedText = item.textContent;
-                        const triggerTextSpan = trigger.querySelector('.nav-link');
-                        if(triggerTextSpan) {
-                           triggerTextSpan.textContent = selectedText === 'All Brands' ? 'Brands' : selectedText;
-                        }
-                        applyFiltersAndRender();
-                        brandDropdown.classList.remove('active');
-                    }
-                });
-            }
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', e => {
-                const brandDropdown = document.querySelector('.brand-dropdown');
-                if (brandDropdown && !brandDropdown.contains(e.target)) {
-                    brandDropdown.classList.remove('active');
+            // Handle tag link clicks in header
+            const mainNav = document.getElementById('main-nav');
+            mainNav?.addEventListener('click', e => {
+                const tagLink = e.target.closest('.tag-link');
+                if(tagLink) {
+                    e.preventDefault();
+                    document.querySelectorAll('#main-nav .nav-link.active').forEach(el => el.classList.remove('active'));
+                    tagLink.classList.add('active');
+                    currentTagFilter = tagLink.dataset.tag;
+                    currentCategoryFilter = 'all'; // Reset category filter
+                    document.querySelector('#category-filter-container .active')?.classList.remove('active');
+                    document.querySelector('#category-filter-container [data-category="all"]')?.classList.add('active');
+                    applyFiltersAndRender();
+                    document.getElementById('product-section')?.scrollIntoView();
                 }
             });
         }
