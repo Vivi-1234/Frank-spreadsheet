@@ -109,6 +109,7 @@
         .flatpickr-day, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: var(--text-primary) !important; }
         .flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover { background: #222 !important; border-color: #222 !important;}
         .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: var(--accent-color) !important; border-color: var(--accent-color) !important; color: var(--text-on-accent) !important; }
+        .flatpickr-day.inRange { background: rgba(255, 255, 255, 0.15) !important; border-color: transparent !important; }
         .flatpickr-time input.flatpickr-hour, .flatpickr-time input.flatpickr-minute, .flatpickr-time .flatpickr-am-pm { color: var(--text-primary) !important; }
         span.flatpickr-weekday, .numInput, .numInputWrapper span, .flatpickr-months .flatpickr-prev-month svg, .flatpickr-months .flatpickr-next-month svg { color: var(--text-secondary) !important; fill: var(--text-secondary) !important; }
         .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--text-primary) !important; }
@@ -571,8 +572,11 @@
 
         async function saveTags(e) {
             const button = e.target;
-            button.disabled = true; showLoading(true);
+            button.disabled = true;
+            showLoading(true);
+            
             const tagRows = document.querySelectorAll('#tag-list .tag-item-row');
+            
             const updates = Array.from(tagRows).map((row, index) => {
                 const id = row.dataset.id;
                 const name = row.querySelector('.tag-name-input').value.trim();
@@ -585,14 +589,37 @@
 
             const currentIds = updates.filter(r => r.id).map(r => r.id);
             const idsToDelete = tagsCache.map(t => t.id).filter(id => !currentIds.includes(id));
-            
+
+            // Separate records for update and insert
+            const recordsToUpdate = updates.filter(r => r.id);
+            const recordsToInsert = updates.filter(r => !r.id);
+
             try {
-                if (idsToDelete.length > 0) await db.from('product_tags').delete().in('id', idsToDelete);
-                if (updates.length > 0) await db.from('product_tags').upsert(updates);
-                showAlert('Tags updated!'); await loadTags();
-            } catch (error) { showAlert('Tags save failed: ' + error.message, true);
-            } finally { showLoading(false); button.disabled = false; }
+                if (idsToDelete.length > 0) {
+                    const { error: deleteError } = await db.from('product_tags').delete().in('id', idsToDelete);
+                    if (deleteError) throw deleteError;
+                }
+
+                if (recordsToUpdate.length > 0) {
+                    const { error: updateError } = await db.from('product_tags').upsert(recordsToUpdate);
+                    if (updateError) throw updateError;
+                }
+
+                if (recordsToInsert.length > 0) {
+                    const { error: insertError } = await db.from('product_tags').insert(recordsToInsert);
+                    if (insertError) throw insertError;
+                }
+
+                showAlert('Tags updated!');
+                await loadTags();
+            } catch (error) {
+                showAlert('Tags save failed: ' + error.message, true);
+            } finally {
+                showLoading(false);
+                button.disabled = false;
+            }
         }
+
 
         async function saveSocialLinks(e) {
             const button = e.target;
@@ -984,15 +1011,23 @@
             if (!ctx) return;
             if (Chart.getChart(canvasId)) Chart.getChart(canvasId).destroy();
             
-            Chart.defaults.color = 'var(--text-secondary)';
             Chart.defaults.font.family = "'Inter', sans-serif";
+            // Set default text color to primary (white) for better visibility
+            Chart.defaults.color = 'var(--text-primary)';
             
             const chartOptions = {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { labels: { color: 'var(--text-primary)' } } },
                 scales: {
-                    x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                    y: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, beginAtZero: true }
+                    x: { 
+                        ticks: { color: 'var(--text-primary)' }, // X-axis text color
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' } 
+                    },
+                    y: { 
+                        ticks: { color: 'var(--text-primary)' }, // Y-axis text color
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
+                        beginAtZero: true 
+                    }
                 }
             };
             
@@ -1053,7 +1088,7 @@
 
         function renderProductSelectionItem(product, container, isInSale) {
             const div = document.createElement('div');
-            div.className = 'flex items-center justify-between p-2 bg-gray-800 rounded-lg border border-border-color';
+            div.className = 'flex items-center justify-between p-2 rounded-lg border border-border-color';
             div.dataset.id = product.id;
             let discountTag = '';
             if (product.discount_is_active && product.discount_factor) {
