@@ -968,22 +968,16 @@
             const chartOptions = {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { labels: { color: 'var(--text-primary)' } } },
-                scales: type === 'line' ? {
+                scales: {
                     x: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
                     y: { ticks: { color: 'var(--text-secondary)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, beginAtZero: true }
-                } : {}
+                }
             };
             
             let chartData;
-            if (type === 'line') {
-                const lineColor = label === 'Site Visits' ? '#FFFFFF' : '#AAAAAA';
-                const bgColor = label === 'Site Visits' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(170, 170, 170, 0.2)';
-                chartData = { labels, datasets: [{ label, data, borderColor: lineColor, backgroundColor: bgColor, fill: 'start', tension: 0.4, pointBackgroundColor: lineColor, pointBorderColor: '#000', pointHoverRadius: 6, pointHoverBorderWidth: 2 }] };
-            } else { // pie
-                const bgColors = ['#FFFFFF', '#E5E5E5', '#CCCCCC', '#B2B2B2', '#999999', '#7F7F7F', '#666666'];
-                chartData = { labels, datasets: [{ label, data, backgroundColor: bgColors, hoverOffset: 8, borderColor: 'var(--bg-panel)' }] };
-                if (chartOptions.plugins.legend) chartOptions.plugins.legend.position = 'right';
-            }
+            const lineColor = label === 'Site Visits' ? '#FFFFFF' : '#AAAAAA';
+            const bgColor = label === 'Site Visits' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(170, 170, 170, 0.2)';
+            chartData = { labels, datasets: [{ label, data, borderColor: lineColor, backgroundColor: bgColor, fill: 'start', tension: 0.4, pointBackgroundColor: lineColor, pointBorderColor: '#000', pointHoverRadius: 6, pointHoverBorderWidth: 2 }] };
             
             new Chart(ctx, { type, data: chartData, options: chartOptions });
         }
