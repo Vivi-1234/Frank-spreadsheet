@@ -108,9 +108,9 @@
         .flatpickr-calendar { background: #111; border-color: var(--border-color); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
         .flatpickr-day, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: var(--text-primary); }
         .flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover { background: #222; border-color: #222;}
-        .flatpickr-day.selected { background: var(--accent-color); border-color: var(--accent-color); color: var(--text-on-accent); }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: var(--accent-color); border-color: var(--accent-color); color: var(--text-on-accent); }
         .flatpickr-time input.flatpickr-hour, .flatpickr-time input.flatpickr-minute, .flatpickr-time .flatpickr-am-pm { color: var(--text-primary); }
-        span.flatpickr-weekday, .numInput, .numInputWrapper span { color: var(--text-secondary); }
+        span.flatpickr-weekday, .numInput, .numInputWrapper span, .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { color: var(--text-secondary) !important; }
         .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--text-primary); }
 
         table thead { background-color: #1a1a1a; color: var(--text-secondary); }
@@ -738,14 +738,22 @@
         // --- Event Listener Setup ---
         function setupGlobalEventListeners() {
             document.body.addEventListener('click', (e) => {
-                const trigger = e.target.closest('.dropdown-trigger');
+                const activeDropdowns = document.querySelectorAll('.dropdown-menu.active');
                 
-                document.querySelectorAll('.dropdown-menu.active').forEach(menu => {
+                // Save and close category dropdowns when clicking outside
+                activeDropdowns.forEach(menu => {
                     if (!menu.parentElement.contains(e.target)) {
+                        if (menu.dataset.type === 'category') {
+                            const productId = menu.dataset.id;
+                            const selected = Array.from(menu.querySelectorAll('input:checked')).map(cb => cb.value);
+                            updateProductField(productId, 'category', selected.join(','));
+                        }
                         menu.classList.remove('active', 'up');
                     }
                 });
 
+                // Toggle logic for any dropdown trigger
+                const trigger = e.target.closest('.dropdown-trigger');
                 if (trigger) {
                     e.stopPropagation(); 
                     const menuToToggle = trigger.nextElementSibling;
@@ -815,9 +823,7 @@
             }
 
             if (target.closest('.dropdown-menu[data-type="category"]')) {
-                if (target.matches('input[type="checkbox"]')) {
-                     e.stopPropagation(); // Keep menu open for multi-select
-                }
+                e.stopPropagation(); // Keep menu open for multi-select
                 return;
             }
             
