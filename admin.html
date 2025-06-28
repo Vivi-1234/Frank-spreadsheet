@@ -261,7 +261,7 @@
                 case 'dashboard': initDashboard(); break;
                 case 'settings': loadSettings(); break;
                 case 'products': initProductsPanel(); break;
-                case 'tags': loadTags(); break;
+                case 'tags': initTagsPanel(); break;
                 case 'navigation': loadNavigation(); break;
                 case 'social': loadSocialLinks(); break;
                 case 'flash_sale': loadFlashSaleData(); break;
@@ -324,6 +324,12 @@
             lucide.createIcons();
         }
 
+        function initTagsPanel() {
+            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
+            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
+            loadTags();
+        }
+
         async function loadTags() {
             const tagList = document.getElementById('tag-list');
             if (!tagList) return;
@@ -333,14 +339,13 @@
                 tagsCache = data;
                 data.forEach(tag => renderTagItem(tag));
             }
-             if (sortableTagsInstance) sortableTagsInstance.destroy();
+            lucide.createIcons();
+            if (sortableTagsInstance) sortableTagsInstance.destroy();
             sortableTagsInstance = new Sortable(tagList, { 
                 animation: 150, 
                 ghostClass: 'bg-gray-800',
                 handle: '.cursor-move'
             });
-            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
-            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
         }
         
         async function loadSocialLinks() {
@@ -590,7 +595,6 @@
             const currentIds = updates.filter(r => r.id).map(r => r.id);
             const idsToDelete = tagsCache.map(t => t.id).filter(id => !currentIds.includes(id));
 
-            // Separate records for update and insert
             const recordsToUpdate = updates.filter(r => r.id);
             const recordsToInsert = updates.filter(r => !r.id);
 
@@ -1012,19 +1016,23 @@
             if (Chart.getChart(canvasId)) Chart.getChart(canvasId).destroy();
             
             Chart.defaults.font.family = "'Inter', sans-serif";
-            // Set default text color to primary (white) for better visibility
-            Chart.defaults.color = 'var(--text-primary)';
             
             const chartOptions = {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: 'var(--text-primary)' } } },
+                plugins: { 
+                    legend: { 
+                        labels: { 
+                            color: '#FFFFFF' // Use direct hex code for reliability
+                        } 
+                    } 
+                },
                 scales: {
                     x: { 
-                        ticks: { color: 'var(--text-primary)' }, // X-axis text color
+                        ticks: { color: '#FFFFFF' }, // Use direct hex code
                         grid: { color: 'rgba(255, 255, 255, 0.1)' } 
                     },
                     y: { 
-                        ticks: { color: 'var(--text-primary)' }, // Y-axis text color
+                        ticks: { color: '#FFFFFF' }, // Use direct hex code
                         grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
                         beginAtZero: true 
                     }
@@ -1088,6 +1096,7 @@
 
         function renderProductSelectionItem(product, container, isInSale) {
             const div = document.createElement('div');
+            // Removed bg-gray-800 for a cleaner look
             div.className = 'flex items-center justify-between p-2 rounded-lg border border-border-color';
             div.dataset.id = product.id;
             let discountTag = '';
