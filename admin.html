@@ -116,6 +116,8 @@
         table tbody tr:hover { background-color: #1a1a1a; }
         
         .text-gradient { color: var(--text-primary); } /* Removed gradient for minimalist look */
+        .sortable-ghost { background: #222; }
+        .sortable-chosen { cursor: grabbing; }
     </style>
 </head>
 <body class="bg-bg-main">
@@ -165,7 +167,7 @@
             </div>
             <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 <input type="hidden" id="edit-product-id">
-                <div id="edit-image-paste-box" class="relative p-4 rounded-lg bg-gray-800 text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color">
+                <div id="edit-image-paste-box" class="relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color">
                     <p id="edit-image-placeholder">Click, drag, or paste an image</p>
                     <img id="edit-preview-image" src="" class="hidden max-h-32 mx-auto rounded mt-2">
                     <button id="delete-image-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
@@ -181,7 +183,7 @@
                     <div><label class="label">Original Price (CNY)</label><input type="number" id="edit-product-price" class="input mt-1"></div>
                     <div><label class="label">Target URL</label><input type="text" id="edit-product-target-url" class="input mt-1" placeholder="https://store.com/product/..."></div>
                 </div>
-                <div class="p-4 rounded-lg bg-gray-900 border border-border-color">
+                <div class="p-4 rounded-lg bg-black border border-border-color">
                     <p class="font-semibold mb-2 text-gray-300">Discount Settings</p>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
                         <div class="sm:col-span-1"><label class="label">Discount Factor (e.g., 0.7)</label><input type="number" id="edit-product-discount-factor" class="input mt-1" step="0.01" min="0" max="1"></div>
@@ -222,11 +224,10 @@
 
         // --- Global State ---
         let productsCache = [], brandsCache = [], navCache = [], currentAnalyticsData = [];
-        let sortableInstance = null, sortableFlashSaleInstance = null;
+        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null;
         let newProductFiles = new Map(), newSocialFiles = new Map();
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
-
 
         // --- DOM Elements ---
         const authScreen = document.getElementById('auth-screen');
@@ -239,7 +240,7 @@
         // --- HTML Templates (English, Minimalist) ---
         const templates = {
             dashboard: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Dashboard</h2><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input id="date-range-picker" class="input" placeholder="Select date range"></div><button id="export-excel-btn" class="btn btn-secondary text-sm"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export Data</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"><div class="panel p-5"><p class="text-sm text-text-secondary">Total Site Visits</p><p id="total-visits" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Product Clicks</p><p id="total-product-clicks" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Products</p><p id="total-products" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Active Discounts</p><p id="active-discounts" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Top Product</p><p id="top-product" class="text-lg font-bold truncate text-text-primary">N/A</p></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Site Visit Trend</h3><div class="h-64"><canvas id="visits-chart"></canvas></div></div><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Product Click Trend</h3><div class="h-64"><canvas id="product-clicks-chart"></canvas></div></div></div>`,
-            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product</h3><div id="add-product-form" class="space-y-4"></div><div class="mt-6 flex justify-end"><button id="submit-new-product-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit Product</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Category</th><th class="p-4">Brand</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list" class="divide-y divide-border-color"></tbody></table></div></div></div>`,
+            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Category</th><th class="p-4">Brand</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list" class="divide-y divide-border-color"></tbody></table></div></div></div>`,
             brands: `<h2 class="text-2xl font-bold text-text-primary mb-6">Brand Management</h2><div class="panel p-6 max-w-2xl"><div class="flex items-center gap-2 mb-4"><input type="text" id="new-brand-input" class="input flex-grow" placeholder="Enter new brand name (e.g., Nike)"><button id="add-brand-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="brand-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-brands-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             navigation: `<h2 class="text-2xl font-bold text-text-primary mb-6">Navigation (Categories)</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage the category filter buttons on the homepage. Drag to reorder.</p><div id="navigation-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-nav-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Nav Item</button></div><div class="text-right mt-4"><button id="save-nav-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             settings: `<h2 class="text-2xl font-bold text-text-primary mb-6">Site Settings</h2><div class="panel p-6 space-y-6 max-w-2xl"><div><label for="siteTitle" class="label">Main Title</label><input type="text" id="siteTitle" class="input mt-1"></div><div><label for="siteSubtitle" class="label">Subtitle</label><textarea id="siteSubtitle" class="input mt-1" rows="2"></textarea></div><div><label for="videoUrl" class="label">Tutorial Video URL</label><input type="text" id="videoUrl" class="input mt-1"><p class="text-xs text-text-secondary mt-1">Hint: Use YouTube's "embed" link format.</p></div><div><label class="label">Hero Background Image</label><div id="hero-bg-upload-box" class="mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="hero-bg-placeholder">Click to upload or drag an image here</p><img id="hero-bg-preview" src="" class="hidden max-h-32 mx-auto rounded"><button id="delete-hero-bg-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="hero-bg-input" class="hidden" accept="image/*"></div><div class="text-right pt-4 border-t border-border-color"><button id="save-settings-btn" class="btn btn-primary">Save Settings</button></div></div>`,
@@ -306,6 +307,9 @@
                 navCache = data;
                 data.filter(item => item.link_text.toLowerCase() !== 'home').forEach(item => renderNavItem(item));
             }
+            if (sortableNavInstance) sortableNavInstance.destroy();
+            sortableNavInstance = new Sortable(navList, { animation: 150, ghostClass: 'bg-gray-800' });
+
             document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
             document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
             lucide.createIcons();
@@ -335,7 +339,9 @@
         }
 
         async function initProductsPanel() {
-            renderAddProductForm();
+            document.getElementById('add-product-form-row-btn')?.addEventListener('click', addProductFormRow);
+            document.getElementById('submit-all-new-products-btn')?.addEventListener('click', submitAllNewProducts);
+            addProductFormRow();
             await loadProducts();
         }
         
@@ -398,9 +404,9 @@
             const navList = document.getElementById('navigation-list');
             if (!navList) return;
             const div = document.createElement('div');
-            div.className = 'flex items-center gap-2 nav-item-row';
+            div.className = 'flex items-center gap-2 nav-item-row p-2 bg-bg-panel rounded';
             div.dataset.id = item.id || `new_${Date.now()}`;
-            div.innerHTML = `<input type="text" value="${item.link_text || ''}" class="input nav-text w-1/3" placeholder="Link Text"><input type="text" value="${item.link_url || ''}" class="input nav-url w-2/3" placeholder="URL is auto-generated" disabled><button class="delete-nav-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
+            div.innerHTML = `<i data-lucide="grip-vertical" class="cursor-move text-gray-500 flex-shrink-0"></i><input type="text" value="${item.link_text || ''}" class="input nav-text w-1/3" placeholder="Link Text"><input type="text" value="${item.link_url || ''}" class="input nav-url w-2/3" placeholder="URL is auto-generated" disabled><button class="delete-nav-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
             div.querySelector('.nav-text').addEventListener('input', (e) => { e.target.nextElementSibling.value = e.target.value.trim() ? `${BASE_URL}?category=${e.target.value.trim()}` : ''; });
             div.querySelector('.delete-nav-btn').addEventListener('click', () => div.remove());
             navList.appendChild(div);
@@ -436,68 +442,61 @@
             setupSocialRowListeners(div);
             lucide.createIcons();
         }
-
-        function renderAddProductForm() {
-            const container = document.getElementById('add-product-form');
-            if (!container) return;
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="label mb-1 block">Product Name</label>
-                        <input type="text" data-field="name" class="input" placeholder="e.g., Cool Sneaker">
-                    </div>
-                    <div>
-                        <label class="label mb-1 block">Price (CNY)</label>
-                        <input type="number" data-field="price" class="input" placeholder="e.g., 599">
-                    </div>
-                </div>
-                <div>
-                    <label class="label mb-1 block">Target URL</label>
-                    <input type="text" data-field="target_url" class="input" placeholder="https://store.com/product/cool-sneaker">
-                </div>
-                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="label mb-1 block">Discount Factor</label>
-                        <input type="number" data-field="discount_factor" class="input" placeholder="e.g., 0.8 for 20% off" step="0.01" min="0" max="1">
-                    </div>
-                    <div>
-                        <label class="label mb-1 block">Discount Expiry</label>
-                        <input type="datetime-local" data-field="discount_expires_at" class="input flatpickr-input">
-                    </div>
-                    <div class="flex items-end pb-1">
-                         <label class="flex items-center space-x-2 cursor-pointer">
-                            <input type="checkbox" data-field="discount_is_active" class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-white focus:ring-white">
-                            <span>Enable Discount</span>
-                        </label>
-                    </div>
-                </div>
-                <div>
-                     <label class="label mb-1 block">Product Image</label>
-                     <div class="add-image-box mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color">
-                        <p class="add-image-placeholder">Click to upload image</p>
-                        <img src="" class="hidden max-h-24 mx-auto rounded add-preview-image">
-                     </div>
-                     <input type="file" class="hidden add-image-input" accept="image/*">
-                </div>
-            `;
-            initFlatpickr(container.querySelector('.flatpickr-input'));
-            const imageBox = container.querySelector('.add-image-box');
-            const imageInput = container.querySelector('.add-image-input');
-            const previewImage = container.querySelector('.add-preview-image');
-            const placeholder = container.querySelector('.add-image-placeholder');
-            imageBox.addEventListener('click', () => imageInput.click());
-            imageInput.addEventListener('change', (e) => {
+        
+        function setupSocialRowListeners(row) {
+            const logoBox = row.querySelector('.social-logo-box');
+            const logoInput = row.querySelector('.social-logo-input');
+            const previewImage = row.querySelector('.social-logo-preview');
+            const placeholder = row.querySelector('.social-logo-placeholder');
+            logoBox.addEventListener('click', () => logoInput.click());
+            logoInput.addEventListener('change', (e) => {
                 const file = e.target.files?.[0];
-                if (file) { 
-                    newProductFiles.set('single-add', file); 
-                    previewImage.src = URL.createObjectURL(file); 
+                if (file) {
+                    newSocialFiles.set(row.dataset.id, file);
+                    previewImage.src = URL.createObjectURL(file);
                     previewImage.classList.remove('hidden');
                     placeholder.classList.add('hidden');
                 }
             });
-
-            document.getElementById('submit-new-product-btn').addEventListener('click', submitNewProduct);
+            row.querySelector('.delete-social-btn').addEventListener('click', () => {
+                newSocialFiles.delete(row.dataset.id);
+                row.remove();
+            });
         }
+        
+        function addProductFormRow() {
+            const container = document.getElementById('add-product-forms-container');
+            if (!container) return;
+            const formId = `new-form-${Date.now()}`;
+            const div = document.createElement('div');
+            div.className = 'add-form-row relative p-4 border border-border-color rounded-lg';
+            div.id = formId;
+            div.innerHTML = `<button class="remove-form-row-btn absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full"><i data-lucide="x" class="h-3 w-3"></i></button><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="text" placeholder="Product Name" class="input" data-field="name"><input type="number" placeholder="Price (CNY)" class="input" data-field="price"></div><div class="mt-4"><input type="text" placeholder="Target URL" class="input" data-field="target_url"></div><div class="mt-4"><label class="label mb-1 block">Product Image</label><div class="add-image-box mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color"><p class="add-image-placeholder">Click to upload</p><img src="" class="hidden max-h-24 mx-auto rounded add-preview-image"></div><input type="file" class="hidden add-image-input" accept="image/*"></div>`;
+
+            container.appendChild(div);
+            lucide.createIcons();
+
+            const imageBox = div.querySelector('.add-image-box');
+            const imageInput = div.querySelector('.add-image-input');
+            const previewImage = div.querySelector('.add-preview-image');
+            const placeholder = div.querySelector('.add-image-placeholder');
+            
+            imageBox.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    newProductFiles.set(formId, file);
+                    previewImage.src = URL.createObjectURL(file);
+                    previewImage.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                }
+            });
+            div.querySelector('.remove-form-row-btn').addEventListener('click', () => {
+                newProductFiles.delete(formId);
+                div.remove();
+            });
+        }
+
 
         // --- Data Saving Functions ---
         async function saveSettings(e) {
@@ -529,26 +528,23 @@
             const button = e.target;
             button.disabled = true; showLoading(true);
             const navRows = document.querySelectorAll('#navigation-list .nav-item-row');
-            const itemsToUpsert = [], itemsToInsert = [];
-            navRows.forEach((row, index) => {
+            const updates = Array.from(navRows).map((row, index) => {
+                const id = row.dataset.id;
                 const linkText = row.querySelector('.nav-text').value.trim();
                 const linkUrl = row.querySelector('.nav-url').value.trim();
-                const id = row.dataset.id;
-                if (linkText) {
-                    const record = { link_text: linkText, link_url: linkUrl || `${BASE_URL}?category=${linkText}`, display_order: index };
-                    if (id.startsWith('new_')) itemsToInsert.push(record);
-                    else { record.id = parseInt(id); itemsToUpsert.push(record); }
+                const record = { link_text: linkText, link_url: linkUrl || `${BASE_URL}?category=${linkText}`, display_order: index };
+                if (!id.startsWith('new_')) {
+                    record.id = parseInt(id);
                 }
+                return record;
             });
-            const { data: existingNavs } = await db.from('navigation').select('id');
-            const existingIds = existingNavs.map(n => n.id);
-            const currentIds = itemsToUpsert.map(n => n.id);
-            const idsToDelete = existingIds.filter(id => !currentIds.includes(id));
+            
+            const currentIds = updates.filter(r => r.id).map(r => r.id);
+            const idsToDelete = navCache.map(n => n.id).filter(id => !currentIds.includes(id));
             
             try {
                 if (idsToDelete.length > 0) await db.from('navigation').delete().in('id', idsToDelete);
-                if (itemsToUpsert.length > 0) await db.from('navigation').upsert(itemsToUpsert);
-                if (itemsToInsert.length > 0) await db.from('navigation').insert(itemsToInsert);
+                if (updates.length > 0) await db.from('navigation').upsert(updates);
                 showAlert('Navigation updated!'); await loadNavigation();
             } catch (error) { showAlert('Navigation save failed: ' + error.message, true);
             } finally { showLoading(false); button.disabled = false; }
@@ -609,48 +605,33 @@
             } finally { showLoading(false); button.disabled = false; }
         }
 
-        async function submitNewProduct() {
+        async function submitAllNewProducts() {
+            const forms = document.querySelectorAll('.add-form-row');
+            if (forms.length === 0) return showAlert('No products to add.');
             showLoading(true);
-            const form = document.getElementById('add-product-form');
-            
-            const getValue = (field) => form.querySelector(`[data-field="${field}"]`).value;
-            const getChecked = (field) => form.querySelector(`[data-field="${field}"]`).checked;
-            
-            const name = getValue('name');
-            const price = parseFloat(getValue('price'));
-            const target_url = getValue('target_url');
-
-            if (!name || isNaN(price) || !target_url) {
-                showLoading(false);
-                return showAlert('Please fill in required fields (Name, Price, URL).', true);
-            }
-
-            const imageFile = newProductFiles.get('single-add');
-            const imageUrl = imageFile ? await uploadImage(imageFile) : null;
-            
             const { count } = await db.from('products').select('*', { count: 'exact', head: true });
-            
-            const productData = {
-                name: name,
-                price: price,
-                target_url: target_url,
-                image_url: imageUrl,
-                discount_factor: parseFloat(getValue('discount_factor')) || null,
-                discount_expires_at: getValue('discount_expires_at') ? new Date(getValue('discount_expires_at')).toISOString() : null,
-                discount_is_active: getChecked('discount_is_active'),
-                display_order: count || 0
-            };
-            productData.discount_price = (productData.discount_factor && !isNaN(price)) ? (price * productData.discount_factor).toFixed(2) : null;
-
-            const { error } = await db.from('products').insert([productData]);
+            let currentOrder = count || 0;
+            const productsToUpload = [];
+            for (const form of forms) {
+                const name = form.querySelector('[data-field="name"]').value;
+                const price = parseFloat(form.querySelector('[data-field="price"]').value);
+                const target_url = form.querySelector('[data-field="target_url"]').value || null;
+                if (!name || isNaN(price) || !target_url) {
+                    showLoading(false);
+                    return showAlert(`Please fill in required fields (Name, Price, URL) for all products.`, true);
+                }
+                const imageFile = newProductFiles.get(form.id);
+                const imageUrl = imageFile ? await uploadImage(imageFile) : null;
+                productsToUpload.push({ name, price, target_url, image_url: imageUrl, display_order: currentOrder++ });
+            }
+            const { error } = await db.from('products').insert(productsToUpload);
             showLoading(false);
-
-            if (error) {
-                showAlert("Failed to add product: " + error.message, true);
-            } else {
-                showAlert('Product added successfully!');
-                newProductFiles.delete('single-add');
-                renderAddProductForm(); // Reset the form
+            if (error) showAlert("Bulk add failed: " + error.message, true);
+            else {
+                showAlert(`Successfully added ${productsToUpload.length} new products!`);
+                document.getElementById('add-product-forms-container').innerHTML = '';
+                newProductFiles.clear();
+                addProductFormRow();
                 await loadProducts();
             }
         }
@@ -747,7 +728,31 @@
             modal.classList.remove('hidden');
         }
 
-        // --- Event Listeners ---
+        // --- Event Listener Setup ---
+        function setupGlobalEventListeners() {
+            // General dropdown logic
+            document.body.addEventListener('click', (e) => {
+                const trigger = e.target.closest('.dropdown-trigger');
+                document.querySelectorAll('.dropdown-menu.active').forEach(menu => {
+                    if (!menu.previousElementSibling.contains(e.target)) {
+                        menu.classList.remove('active', 'up');
+                    }
+                });
+
+                if (trigger) {
+                    const menuToToggle = trigger.nextElementSibling;
+                    if (menuToToggle) {
+                        const isActive = menuToToggle.classList.toggle('active');
+                        if (isActive) {
+                             const rect = trigger.getBoundingClientRect();
+                             const spaceBelow = window.innerHeight - rect.bottom;
+                             menuToToggle.classList.toggle('up', spaceBelow < menuToToggle.offsetHeight + 10);
+                        }
+                    }
+                }
+            });
+        }
+        
         function setupProductEventListeners() {
             document.getElementById('select-all-products')?.addEventListener('change', handleSelectAll);
             document.getElementById('bulk-delete-btn')?.addEventListener('click', bulkDelete);
@@ -797,6 +802,7 @@
                  const brandId = target.closest('.dropdown-item').dataset.brandId;
                  target.closest('.custom-dropdown').querySelector('.dropdown-trigger').textContent = target.textContent;
                  updateProductField(id, 'brand_id', brandId);
+                 target.closest('.dropdown-menu').classList.remove('active');
                  return;
             }
 
@@ -927,30 +933,8 @@
             
             renderChart('visits-chart', 'line', dateLabels, processDataForChart(validVisits, dateLabels), 'Site Visits');
             renderChart('product-clicks-chart', 'line', dateLabels, processDataForChart(productClicks, dateLabels), 'Product Clicks');
-            
-            const { data: countryData, labels: countryLabels } = processCountryData(validVisits);
-            renderChart('country-chart', 'pie', countryLabels, countryData, 'Visitor Location');
         }
         
-        function processCountryData(validVisits) {
-            const countryCounts = validVisits.reduce((acc, curr) => {
-                const country = curr.country_code || 'Unknown';
-                acc[country] = (acc[country] || 0) + 1; return acc;
-            }, {});
-            const sortedCountries = Object.entries(countryCounts).sort(([,a],[,b]) => b-a);
-            const top5 = sortedCountries.slice(0, 5);
-            const otherCount = sortedCountries.slice(5).reduce((acc, [, count]) => acc + count, 0);
-            
-            const labels = top5.map(([key]) => key);
-            const data = top5.map(([,val]) => val);
-
-            if(otherCount > 0) {
-                labels.push('Other');
-                data.push(otherCount);
-            }
-            return { data, labels };
-        }
-
         function processDataForChart(events, labels) {
             const dataMap = labels.reduce((acc, label) => { acc[label] = 0; return acc; }, {});
             events.forEach(event => {
@@ -1047,7 +1031,7 @@
             if (product.discount_is_active && product.discount_factor) {
                 discountTag = `<span class="ml-2 text-xs font-bold text-black bg-yellow-400 px-2 py-0.5 rounded-full">${Math.round((1-product.discount_factor)*100)}% off</span>`;
             }
-            div.innerHTML = `<div class="flex items-center gap-2 overflow-hidden">${isInSale ? '<i data-lucide="grip-vertical" class="cursor-move text-gray-400 mr-2"></i>' : ''}<img src="${product.image_url || 'https://placehold.co/32x32/111111/AAAAAA?text=??'}" class="w-8 h-8 object-cover rounded"><span class="text-sm font-medium truncate">${product.name}</span>${discountTag}</div><button class="flash-sale-product-btn p-1 rounded-full hover:bg-gray-700">${isInSale ? '<i data-lucide="minus-circle" class="h-5 w-5 text-red-400"></i>' : '<i data-lucide="plus-circle" class="h-5 w-5 text-green-400"></i>'}</button>`;
+            div.innerHTML = `<div class="flex items-center gap-2 overflow-hidden">${isInSale ? '<i data-lucide="grip-vertical" class="cursor-move text-gray-400 mr-2"></i>' : ''}<img src="${product.image_url || 'https://placehold.co/32x32/111111/AAAAAA?text=??'}" class="w-8 h-8 object-cover rounded"><span class="text-sm font-medium truncate">${product.name}</span>${discountTag}</div><button class="flash-sale-product-btn p-1 rounded-full hover:bg-gray-700">${isInSale ? '<i data-lucide="minus-circle" class="h-5 w-5 text-text-secondary"></i>' : '<i data-lucide="plus-circle" class="h-5 w-5 text-text-secondary"></i>'}</button>`;
             container.appendChild(div);
             div.querySelector('.flash-sale-product-btn').addEventListener('click', () => {
                 const targetList = isInSale ? document.getElementById('all-products-list') : document.getElementById('flash-sale-products-list');
@@ -1107,6 +1091,7 @@
                 adminPanel.classList.remove('hidden');
                 setupSidebarNav();
                 renderPanel('dashboard');
+                setupGlobalEventListeners();
             };
             
             loginBtn.addEventListener('click', attemptLogin);
