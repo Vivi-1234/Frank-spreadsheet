@@ -110,7 +110,7 @@
         .flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover { background: #222 !important; border-color: #222 !important;}
         .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: var(--accent-color) !important; border-color: var(--accent-color) !important; color: var(--text-on-accent) !important; }
         .flatpickr-time input.flatpickr-hour, .flatpickr-time input.flatpickr-minute, .flatpickr-time .flatpickr-am-pm { color: var(--text-primary) !important; }
-        span.flatpickr-weekday, .numInput, .numInputWrapper span, .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { color: var(--text-secondary) !important; }
+        span.flatpickr-weekday, .numInput, .numInputWrapper span, .flatpickr-months .flatpickr-prev-month svg, .flatpickr-months .flatpickr-next-month svg { color: var(--text-secondary) !important; fill: var(--text-secondary) !important; }
         .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--text-primary) !important; }
 
         table thead { background-color: #1a1a1a; color: var(--text-secondary); }
@@ -178,13 +178,14 @@
                     </button>
                 </div>
                 <input type="file" id="edit-image-input" class="hidden" accept="image/*">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="label">Product Name</label><input type="text" id="edit-product-name" class="input mt-1"></div>
-                    <div><label class="label">Brand</label><select id="edit-product-brand" class="input mt-1"></select></div>
-                </div>
+                <div><label class="label">Product Name</label><input type="text" id="edit-product-name" class="input mt-1"></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div><label class="label">Original Price (CNY)</label><input type="number" id="edit-product-price" class="input mt-1"></div>
                     <div><label class="label">Target URL</label><input type="text" id="edit-product-target-url" class="input mt-1" placeholder="https://store.com/product/..."></div>
+                </div>
+                <div id="edit-tags-container" class="space-y-2">
+                     <label class="label">Tags (e.g., Sales, Top Selling)</label>
+                     <div id="edit-tags-list" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div class="p-4 rounded-lg bg-black border border-border-color">
                     <p class="font-semibold mb-2 text-gray-300">Discount Settings</p>
@@ -226,8 +227,8 @@
         let db; 
 
         // --- Global State ---
-        let productsCache = [], brandsCache = [], navCache = [], currentAnalyticsData = [];
-        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null;
+        let productsCache = [], tagsCache = [], navCache = [], currentAnalyticsData = [];
+        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null;
         let newProductFiles = new Map(), newSocialFiles = new Map();
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
@@ -243,8 +244,8 @@
         // --- HTML Templates (English, Minimalist) ---
         const templates = {
             dashboard: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Dashboard</h2><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input id="date-range-picker" class="input" placeholder="Select date range"></div><button id="export-excel-btn" class="btn btn-secondary text-sm"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export Data</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"><div class="panel p-5"><p class="text-sm text-text-secondary">Total Site Visits</p><p id="total-visits" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Product Clicks</p><p id="total-product-clicks" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Products</p><p id="total-products" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Active Discounts</p><p id="active-discounts" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Top Product</p><p id="top-product" class="text-lg font-bold truncate text-text-primary">N/A</p></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Site Visit Trend</h3><div class="h-64"><canvas id="visits-chart"></canvas></div></div><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Product Click Trend</h3><div class="h-64"><canvas id="product-clicks-chart"></canvas></div></div></div>`,
-            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Category</th><th class="p-4">Brand</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list" class="divide-y divide-border-color"></tbody></table></div></div></div>`,
-            brands: `<h2 class="text-2xl font-bold text-text-primary mb-6">Brand Management</h2><div class="panel p-6 max-w-2xl"><div class="flex items-center gap-2 mb-4"><input type="text" id="new-brand-input" class="input flex-grow" placeholder="Enter new brand name (e.g., Nike)"><button id="add-brand-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="brand-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-brands-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
+            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Category</th><th class="p-4">Tags</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list" class="divide-y divide-border-color"></tbody></table></div></div></div>`,
+            tags: `<h2 class="text-2xl font-bold text-text-primary mb-6">Tag Management</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage special tags like "Sales", "Top Selling", etc. Drag to reorder.</p><div class="flex items-center gap-2 mb-4"><input type="text" id="new-tag-input" class="input flex-grow" placeholder="Enter new tag name (e.g., Sales)"><button id="add-tag-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="tag-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-tags-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             navigation: `<h2 class="text-2xl font-bold text-text-primary mb-6">Navigation (Categories)</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage the category filter buttons on the homepage. Drag to reorder.</p><div id="navigation-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-nav-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Nav Item</button></div><div class="text-right mt-4"><button id="save-nav-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             settings: `<h2 class="text-2xl font-bold text-text-primary mb-6">Site Settings</h2><div class="panel p-6 space-y-6 max-w-2xl"><div><label for="siteTitle" class="label">Main Title</label><input type="text" id="siteTitle" class="input mt-1"></div><div><label for="siteSubtitle" class="label">Subtitle</label><textarea id="siteSubtitle" class="input mt-1" rows="2"></textarea></div><div><label for="videoUrl" class="label">Tutorial Video URL</label><input type="text" id="videoUrl" class="input mt-1"><p class="text-xs text-text-secondary mt-1">Hint: Use YouTube's "embed" link format.</p></div><div><label class="label">Hero Background Image</label><div id="hero-bg-upload-box" class="mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="hero-bg-placeholder">Click to upload or drag an image here</p><img id="hero-bg-preview" src="" class="hidden max-h-32 mx-auto rounded"><button id="delete-hero-bg-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="hero-bg-input" class="hidden" accept="image/*"></div><div class="text-right pt-4 border-t border-border-color"><button id="save-settings-btn" class="btn btn-primary">Save Settings</button></div></div>`,
             social: `<h2 class="text-2xl font-bold text-text-primary mb-6">Social Media Links</h2><div class="panel p-6 max-w-2xl"><div id="social-links-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-social-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Social Link</button></div><div class="text-right mt-4"><button id="save-social-btn" class="btn btn-primary">Save Social Links</button></div></div>`,
@@ -259,8 +260,8 @@
                 case 'dashboard': initDashboard(); break;
                 case 'settings': loadSettings(); break;
                 case 'products': initProductsPanel(); break;
+                case 'tags': loadTags(); break;
                 case 'navigation': loadNavigation(); break;
-                case 'brands': loadBrands(); break;
                 case 'social': loadSocialLinks(); break;
                 case 'flash_sale': loadFlashSaleData(); break;
             }
@@ -322,19 +323,25 @@
             lucide.createIcons();
         }
 
-        async function loadBrands() {
-            const brandList = document.getElementById('brand-list');
-            if (!brandList) return;
-            const { data } = await db.from('brands').select('*').order('name');
-            brandList.innerHTML = '';
+        async function loadTags() {
+            const tagList = document.getElementById('tag-list');
+            if (!tagList) return;
+            const { data } = await db.from('product_tags').select('*').order('display_order');
+            tagList.innerHTML = '';
             if (data) {
-                brandsCache = data;
-                data.forEach(brand => renderBrandItem(brand));
+                tagsCache = data;
+                data.forEach(tag => renderTagItem(tag));
             }
-            document.getElementById('add-brand-btn').addEventListener('click', addNewBrand);
-            document.getElementById('save-brands-btn').addEventListener('click', saveBrands);
+             if (sortableTagsInstance) sortableTagsInstance.destroy();
+            sortableTagsInstance = new Sortable(tagList, { 
+                animation: 150, 
+                ghostClass: 'bg-gray-800',
+                handle: '.cursor-move'
+            });
+            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
+            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
         }
-
+        
         async function loadSocialLinks() {
             const socialList = document.getElementById('social-links-list');
             if (!socialList) return;
@@ -359,16 +366,16 @@
             showLoading(true);
             productListEl.innerHTML = '<tr><td colspan="11" class="text-center p-8">Loading products...</td></tr>';
             
-            const [productsRes, navRes, brandsRes] = await Promise.all([
-                db.from('products').select(`*, brands (*)`).eq('is_active', true).order('display_order'),
+            const [productsRes, navRes, tagsRes] = await Promise.all([
+                db.from('products').select(`*`).eq('is_active', true).order('display_order'),
                 db.from('navigation').select('link_text').order('display_order'),
-                db.from('brands').select('*').order('name')
+                db.from('product_tags').select('*').order('name')
             ]);
             showLoading(false);
 
             productsCache = productsRes.data || [];
-            brandsCache = brandsRes.data || [];
             navCache = navRes.data || [];
+            tagsCache = tagsRes.data || [];
             const categories = navCache.filter(item => item.link_text.toLowerCase() !== 'home').map(item => item.link_text);
 
             if(productsCache.length === 0) {
@@ -378,9 +385,14 @@
 
             productListEl.innerHTML = productsCache.map(p => {
                 const selectedCategories = p.category ? p.category.split(',').map(cat => cat.trim()) : [];
+                const selectedTags = p.tags ? p.tags.split(',').map(tag => tag.trim()) : [];
+
                 const categoryDropdownItems = categories.map(cat => `<label class="dropdown-item"><input type="checkbox" value="${cat}" ${selectedCategories.includes(cat) ? 'checked' : ''}><span>${cat}</span></label>`).join('');
+                const tagsDropdownItems = tagsCache.map(tag => `<label class="dropdown-item"><input type="checkbox" value="${tag.name}" ${selectedTags.includes(tag.name) ? 'checked' : ''}><span>${tag.name}</span></label>`).join('');
+
                 const categoryDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="category" data-id="${p.id}">${selectedCategories.join(', ') || 'Select Category'}</div><div class="dropdown-menu" data-type="category" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${categoryDropdownItems}</div></div></div>`;
-                const brandDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="brand" data-id="${p.id}">${p.brands?.name || 'Select Brand'}</div><div class="dropdown-menu" data-type="brand" data-id="${p.id}">${brandsCache.map(brand => `<div class="dropdown-item" data-brand-id="${brand.id}">${brand.name}</div>`).join('')}</div></div>`;
+                const tagsDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="tags" data-id="${p.id}">${selectedTags.join(', ') || 'Select Tags'}</div><div class="dropdown-menu" data-type="tags" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${tagsDropdownItems}</div></div></div>`;
+
                 const expiryDate = p.discount_expires_at ? new Date(p.discount_expires_at).toLocaleDateString('en-US') : '—';
                 const discountFactorText = p.discount_factor ? `${Math.round((1 - p.discount_factor) * 100)}% off` : '—';
                 
@@ -390,7 +402,7 @@
                         <td class="p-4"><i data-lucide="grip-vertical" class="cursor-move text-gray-500"></i></td>
                         <td class="p-4"><div class="flex items-center gap-3"><img src="${p.image_url || 'https://placehold.co/40x40/111111/AAAAAA?text=??'}" class="w-10 h-10 object-cover rounded"><span class="font-semibold">${p.name}</span></div></td>
                         <td class="p-4">${categoryDropdown}</td>
-                        <td class="p-4">${brandDropdown}</td>
+                        <td class="p-4">${tagsDropdown}</td>
                         <td class="p-4 font-medium">¥${p.price}</td>
                         <td class="p-4"><div class="truncate max-w-[15ch]">${p.target_url || '—'}</div></td>
                         <td class="p-4">${discountFactorText}</td>
@@ -420,21 +432,21 @@
             if (isNew) lucide.createIcons();
         }
 
-        function renderBrandItem(brand = {}, isNew = false) {
-            const brandList = document.getElementById('brand-list');
-            if (!brandList) return;
+        function renderTagItem(tag = {}, isNew = false) {
+            const tagList = document.getElementById('tag-list');
+            if (!tagList) return;
             const div = document.createElement('div');
-            div.className = 'flex items-center gap-2';
-            div.dataset.id = brand.id || `new_${Date.now()}`;
-            div.innerHTML = `<input type="text" value="${brand.name || ''}" class="input brand-name-input flex-grow" placeholder="New Brand Name"><button class="delete-brand-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
-            div.querySelector('.delete-brand-btn').addEventListener('click', () => div.remove());
-            brandList.appendChild(div);
+            div.className = 'flex items-center gap-2 tag-item-row p-2 bg-bg-panel rounded';
+            div.dataset.id = tag.id || `new_${Date.now()}`;
+            div.innerHTML = `<i data-lucide="grip-vertical" class="cursor-move text-gray-500 flex-shrink-0"></i><input type="text" value="${tag.name || ''}" class="input tag-name-input flex-grow" placeholder="New Tag Name"><button class="delete-tag-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
+            div.querySelector('.delete-tag-btn').addEventListener('click', () => div.remove());
+            tagList.appendChild(div);
             if (isNew) { div.querySelector('input').focus(); lucide.createIcons(); }
         }
 
-        function addNewBrand() {
-            const input = document.getElementById('new-brand-input');
-            if (input && input.value.trim()) { renderBrandItem({ name: input.value.trim() }, true); input.value = ''; }
+        function addNewTag() {
+            const input = document.getElementById('new-tag-input');
+            if (input && input.value.trim()) { renderTagItem({ name: input.value.trim() }, true); input.value = ''; }
         }
 
         function addSocialRow(item = {}) {
@@ -557,26 +569,28 @@
             } finally { showLoading(false); button.disabled = false; }
         }
 
-        async function saveBrands(e) {
+        async function saveTags(e) {
             const button = e.target;
             button.disabled = true; showLoading(true);
-            const brandRows = document.querySelectorAll('#brand-list > div');
-            const newRecords = [], updatedRecords = [];
-            Array.from(brandRows).forEach(row => {
-                const name = row.querySelector('.brand-name-input').value.trim();
-                if (!name) return;
-                const record = { name }, id = row.dataset.id;
-                if (id.startsWith('new_')) newRecords.push(record);
-                else { record.id = parseInt(id); updatedRecords.push(record); }
-            });
+            const tagRows = document.querySelectorAll('#tag-list .tag-item-row');
+            const updates = Array.from(tagRows).map((row, index) => {
+                const id = row.dataset.id;
+                const name = row.querySelector('.tag-name-input').value.trim();
+                const record = { name, display_order: index };
+                if (!id.startsWith('new_')) {
+                    record.id = parseInt(id);
+                }
+                return record;
+            }).filter(r => r.name);
+
+            const currentIds = updates.filter(r => r.id).map(r => r.id);
+            const idsToDelete = tagsCache.map(t => t.id).filter(id => !currentIds.includes(id));
+            
             try {
-                const currentIds = updatedRecords.map(r => r.id);
-                const idsToDelete = brandsCache.filter(brand => !currentIds.includes(brand.id)).map(brand => brand.id);
-                if (idsToDelete.length > 0) await db.from('brands').delete().in('id', idsToDelete);
-                if (newRecords.length > 0) await db.from('brands').insert(newRecords);
-                if (updatedRecords.length > 0) await db.from('brands').upsert(updatedRecords);
-                showAlert('Brand list updated!'); await loadBrands();
-            } catch (error) { showAlert(`Save failed: ${error.message}`, true);
+                if (idsToDelete.length > 0) await db.from('product_tags').delete().in('id', idsToDelete);
+                if (updates.length > 0) await db.from('product_tags').upsert(updates);
+                showAlert('Tags updated!'); await loadTags();
+            } catch (error) { showAlert('Tags save failed: ' + error.message, true);
             } finally { showLoading(false); button.disabled = false; }
         }
 
@@ -653,12 +667,14 @@
             const productId = document.getElementById('edit-product-id').value;
             const price = parseFloat(document.getElementById('edit-product-price').value);
             const factor = parseFloat(document.getElementById('edit-product-discount-factor').value);
+            const selectedTags = Array.from(document.querySelectorAll('#edit-tags-list input:checked')).map(cb => cb.value).join(',');
+
             const updates = {
                 id: productId,
                 name: document.getElementById('edit-product-name').value,
-                brand_id: document.getElementById('edit-product-brand').value || null,
                 price: price,
                 target_url: document.getElementById('edit-product-target-url').value,
+                tags: selectedTags,
                 discount_price: (!isNaN(price) && !isNaN(factor)) ? (price * factor).toFixed(2) : null,
                 discount_factor: factor || null,
                 discount_is_active: document.getElementById('edit-product-discount-active').checked,
@@ -701,7 +717,7 @@
             return publicUrl;
         }
         
-        function openEditModal(productId) {
+        async function openEditModal(productId) {
             const product = productsCache.find(p => p.id == productId);
             if (!product) return;
             document.getElementById('edit-product-id').value = product.id;
@@ -711,9 +727,15 @@
             document.getElementById('edit-product-discount-factor').value = product.discount_factor || '';
             document.getElementById('edit-product-discount-active').checked = product.discount_is_active;
 
-            const editBrand = document.getElementById('edit-product-brand');
-            editBrand.innerHTML = `<option value="">-- No Brand --</option>` + brandsCache.map(b => `<option value="${b.id}" ${b.id == product.brand_id ? 'selected' : ''}>${b.name}</option>`).join('');
-            
+            const selectedTags = product.tags ? product.tags.split(',') : [];
+            const tagsListEl = document.getElementById('edit-tags-list');
+            tagsListEl.innerHTML = tagsCache.map(tag => `
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" value="${tag.name}" ${selectedTags.includes(tag.name) ? 'checked' : ''} class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-white focus:ring-white">
+                    <span>${tag.name}</span>
+                </label>
+            `).join('');
+
             const priceInput = document.getElementById('edit-product-price');
             const factorInput = document.getElementById('edit-product-discount-factor');
             const calculatedEl = document.getElementById('calculated-discount-price');
@@ -745,13 +767,13 @@
                 
                 activeDropdowns.forEach(menu => {
                     if (!menu.parentElement.contains(e.target)) {
-                        if (menu.dataset.type === 'category') {
+                        if (menu.dataset.type === 'category' || menu.dataset.type === 'tags') {
                             const productId = menu.dataset.id;
                             const selected = Array.from(menu.querySelectorAll('input:checked')).map(cb => cb.value);
-                            updateProductField(productId, 'category', selected.join(','));
+                            updateProductField(productId, menu.dataset.type, selected.join(','));
                             const trigger = menu.previousElementSibling;
                             if(trigger) {
-                                trigger.textContent = selected.join(', ') || 'Select Category';
+                                trigger.textContent = selected.join(', ') || `Select ${menu.dataset.type.charAt(0).toUpperCase() + menu.dataset.type.slice(1)}`;
                             }
                         }
                         menu.classList.remove('active', 'up');
@@ -827,7 +849,7 @@
                  return;
             }
 
-            if (target.closest('.dropdown-menu[data-type="category"]')) {
+            if (target.closest('.dropdown-menu[data-type="category"]') || target.closest('.dropdown-menu[data-type="tags"]')) {
                 e.stopPropagation(); // Keep menu open
                 return;
             }
@@ -881,7 +903,7 @@
         }
 
         function setupSidebarNav() {
-            sidebarNav.innerHTML = `<button data-target="dashboard" class="tab-button active"><i data-lucide="layout-dashboard" class="mr-3 h-5 w-5"></i>Dashboard</button><button data-target="flash_sale" class="tab-button"><i data-lucide="zap" class="mr-3 h-5 w-5"></i>Flash Sale</button><button data-target="products" class="tab-button"><i data-lucide="package" class="mr-3 h-5 w-5"></i>Products</button><button data-target="brands" class="tab-button"><i data-lucide="copyright" class="mr-3 h-5 w-5"></i>Brands</button><button data-target="navigation" class="tab-button"><i data-lucide="list" class="mr-3 h-5 w-5"></i>Navigation</button><button data-target="settings" class="tab-button"><i data-lucide="sliders-horizontal" class="mr-3 h-5 w-5"></i>Site Settings</button><button data-target="social" class="tab-button"><i data-lucide="share-2" class="mr-3 h-5 w-5"></i>Social Media</button>`;
+            sidebarNav.innerHTML = `<button data-target="dashboard" class="tab-button active"><i data-lucide="layout-dashboard" class="mr-3 h-5 w-5"></i>Dashboard</button><button data-target="flash_sale" class="tab-button"><i data-lucide="zap" class="mr-3 h-5 w-5"></i>Flash Sale</button><button data-target="products" class="tab-button"><i data-lucide="package" class="mr-3 h-5 w-5"></i>Products</button><button data-target="tags" class="tab-button"><i data-lucide="tag" class="mr-3 h-5 w-5"></i>Tags</button><button data-target="navigation" class="tab-button"><i data-lucide="list" class="mr-3 h-5 w-5"></i>Navigation</button><button data-target="settings" class="tab-button"><i data-lucide="sliders-horizontal" class="mr-3 h-5 w-5"></i>Site Settings</button><button data-target="social" class="tab-button"><i data-lucide="share-2" class="mr-3 h-5 w-5"></i>Social Media</button>`;
             sidebarNav.querySelectorAll('.tab-button').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const targetPanel = e.currentTarget.dataset.target;
