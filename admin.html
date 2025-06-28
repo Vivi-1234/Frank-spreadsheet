@@ -67,6 +67,7 @@
             background-color: #222;
             color: var(--text-primary);
         }
+        .dropdown-trigger { cursor: pointer; }
         .input::placeholder { color: #666; }
         .input:focus, select.input:focus, .dropdown-trigger:focus {
             outline: none;
@@ -308,7 +309,11 @@
                 data.filter(item => item.link_text.toLowerCase() !== 'home').forEach(item => renderNavItem(item));
             }
             if (sortableNavInstance) sortableNavInstance.destroy();
-            sortableNavInstance = new Sortable(navList, { animation: 150, ghostClass: 'bg-gray-800' });
+            sortableNavInstance = new Sortable(navList, { 
+                animation: 150, 
+                ghostClass: 'bg-gray-800',
+                handle: '.cursor-move'
+            });
 
             document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
             document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
@@ -372,7 +377,7 @@
             productListEl.innerHTML = productsCache.map(p => {
                 const selectedCategories = p.category ? p.category.split(',').map(cat => cat.trim()) : [];
                 const categoryDropdownItems = categories.map(cat => `<label class="dropdown-item"><input type="checkbox" value="${cat}" ${selectedCategories.includes(cat) ? 'checked' : ''}><span>${cat}</span></label>`).join('');
-                const categoryDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="category" data-id="${p.id}">${selectedCategories.join(', ') || 'Select Category'}</div><div class="dropdown-menu" data-type="category" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${categoryDropdownItems}</div><div class="p-2 border-t border-border-color mt-1"><button class="btn btn-primary btn-xs w-full save-category-btn">Apply</button></div></div></div>`;
+                const categoryDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="category" data-id="${p.id}">${selectedCategories.join(', ') || 'Select Category'}</div><div class="dropdown-menu" data-type="category" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${categoryDropdownItems}</div></div></div>`;
                 const brandDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="brand" data-id="${p.id}">${p.brands?.name || 'Select Brand'}</div><div class="dropdown-menu" data-type="brand" data-id="${p.id}">${brandsCache.map(brand => `<div class="dropdown-item" data-brand-id="${brand.id}">${brand.name}</div>`).join('')}</div></div>`;
                 const expiryDate = p.discount_expires_at ? new Date(p.discount_expires_at).toLocaleDateString('en-US') : '—';
                 const discountFactorText = p.discount_factor ? `${Math.round((1 - p.discount_factor) * 100)}% off` : '—';
@@ -733,8 +738,11 @@
             // General dropdown logic
             document.body.addEventListener('click', (e) => {
                 const trigger = e.target.closest('.dropdown-trigger');
+                
+                // Close all active dropdowns except the one being interacted with
                 document.querySelectorAll('.dropdown-menu.active').forEach(menu => {
-                    if (!menu.previousElementSibling.contains(e.target)) {
+                    // Check if the click is outside the current dropdown's parent element
+                    if (!menu.parentElement.contains(e.target)) {
                         menu.classList.remove('active', 'up');
                     }
                 });
@@ -742,6 +750,8 @@
                 if (trigger) {
                     const menuToToggle = trigger.nextElementSibling;
                     if (menuToToggle) {
+                        // Prevent body click from closing the menu immediately
+                        e.stopPropagation(); 
                         const isActive = menuToToggle.classList.toggle('active');
                         if (isActive) {
                              const rect = trigger.getBoundingClientRect();
@@ -806,14 +816,18 @@
                  return;
             }
 
-            if (target.classList.contains('save-category-btn')) {
-                const menu = target.closest('.dropdown-menu');
-                const trigger = menu.previousElementSibling;
-                const productId = menu.dataset.id;
-                const selected = Array.from(menu.querySelectorAll('input:checked')).map(cb => cb.value);
-                trigger.textContent = selected.join(', ') || 'Select Category';
-                updateProductField(productId, 'category', selected.join(','));
-                menu.classList.remove('active', 'up');
+            if (target.closest('.dropdown-menu[data-type="category"]')) {
+                // If a checkbox is clicked inside the category dropdown, update immediately
+                if (target.matches('input[type="checkbox"]')) {
+                    const menu = target.closest('.dropdown-menu');
+                    const trigger = menu.previousElementSibling;
+                    const productId = menu.dataset.id;
+                    const selected = Array.from(menu.querySelectorAll('input:checked')).map(cb => cb.value);
+                    trigger.textContent = selected.join(', ') || 'Select Category';
+                    updateProductField(productId, 'category', selected.join(','));
+                }
+                // Prevent the dropdown from closing when interacting inside
+                e.stopPropagation(); 
                 return;
             }
 
