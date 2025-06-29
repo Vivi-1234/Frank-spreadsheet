@@ -33,7 +33,7 @@
         .btn-primary:hover { background-color: #D1D5DB; }
         .btn-secondary { background-color: transparent; color: #F9FAFB; border: 1px solid rgba(255, 255, 255, 0.3); }
         .btn-secondary:hover { background-color: rgba(255, 255, 255, 0.1); }
-        @media (min-width: 1024px) { .steps-timeline::before { display: none; } }
+        @media (min-width: 1024px) { .steps-timeline::before { display: block; } }
     </style>
 </head>
 <body class="antialiased">
@@ -69,9 +69,8 @@
             </div>
         </section>
         <section id="steps-section" class="mt-12 md:mt-16">
-            <div id="steps-container" class="max-w-4xl mx-auto space-y-8 lg:space-y-0 lg:grid lg:grid-cols-1 lg:gap-8 steps-timeline">
-                <!-- Steps will be dynamically injected here -->
-            </div>
+            <div id="steps-container" class="max-w-4xl mx-auto space-y-12">
+                </div>
         </section>
     </main>
     <footer class="mt-20 md:mt-28 border-t border-gray-800">
@@ -141,47 +140,53 @@
                 // --- Tutorial Steps ---
                 const stepsContainer = document.getElementById('steps-container');
                 if (steps && steps.length > 0) {
-                    stepsContainer.innerHTML = steps.map((step, index) => {
-                        const hasImage = !!step.image_url;
-                        
-                        let textBlock, imageBlock;
-
-                        if (hasImage) {
-                            const isReversed = index % 2 !== 0;
-                            textBlock = `<div class="lg:col-start-${isReversed ? 2 : 1} lg:row-start-1 flex items-center"></div>`;
-                            imageBlock = `<div class="lg:col-start-${isReversed ? 1 : 2} lg:row-start-1 flex items-center justify-center p-4"></div>`;
-                            return `
-                                <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-center fade-in-up" style="transition-delay: ${index * 100}ms;">
-                                    <div class="flex items-start gap-4 ${isReversed ? 'lg:order-2' : ''}">
-                                        <div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${index + 1}</div>
-                                        <div class="flex-1 pt-1.5">
-                                            <h2 class="text-xl font-bold text-white">${step.title || ''}</h2>
-                                            <p class="mt-2 text-gray-400">${step.description || ''}</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center justify-center p-4 ${isReversed ? 'lg:order-1' : ''}">
-                                        <img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800">
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            // Layout for steps without an image
-                            return `
-                                <div class="fade-in-up" style="transition-delay: ${index * 100}ms;">
-                                    <div class="flex items-start gap-4">
-                                        <div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${index + 1}</div>
-                                        <div class="flex-1 pt-1.5">
-                                            <h2 class="text-xl font-bold text-white">${step.title || ''}</h2>
-                                            <p class="mt-2 text-gray-400">${step.description || ''}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
+                    // Group steps by section_title
+                    const groupedSteps = steps.reduce((acc, step) => {
+                        // Use a placeholder for steps with no section title to group them together
+                        const section = step.section_title || 'default_section';
+                        if (!acc[section]) {
+                            acc[section] = [];
                         }
-                    }).join('<div class="h-8"></div>');
-                    
-                    stepsContainer.classList.remove('lg:grid-cols-2');
-                    stepsContainer.classList.add('lg:grid-cols-1');
+                        acc[section].push(step);
+                        return acc;
+                    }, {});
+
+                    stepsContainer.innerHTML = Object.entries(groupedSteps).map(([sectionTitle, sectionSteps], sectionIndex) => {
+                        // Render section title if it's not the placeholder
+                        const sectionTitleHTML = sectionTitle !== 'default_section' 
+                            ? `<h2 class="text-3xl md:text-4xl font-bold tracking-tight text-center text-white mb-8 fade-in-up" style="transition-delay: ${sectionIndex * 150}ms;">${sectionTitle}</h2>`
+                            : '';
+                        
+                        const stepsHTML = `<div class="steps-timeline space-y-8 lg:space-y-16">` + sectionSteps.map((step, stepIndex) => {
+                            const hasImage = !!step.image_url;
+                            const isReversed = stepIndex % 2 !== 0;
+
+                            const textContent = `
+                                <div class="flex items-start gap-4">
+                                    <div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${step.display_order + 1}</div>
+                                    <div class="flex-1 pt-1.5">
+                                        <h3 class="text-xl font-bold text-white">${step.title || ''}</h3>
+                                        <p class="mt-2 text-gray-400">${step.description || ''}</p>
+                                    </div>
+                                </div>`;
+                            
+                            if (hasImage) {
+                                return `
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-center fade-in-up" style="transition-delay: ${stepIndex * 100}ms;">
+                                        <div class="${isReversed ? 'lg:order-2' : ''}">${textContent}</div>
+                                        <div class="flex items-center justify-center p-4 ${isReversed ? 'lg:order-1' : ''} mt-4 lg:mt-0">
+                                            <img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800">
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                // Render full-width text if no image
+                                return `<div class="fade-in-up" style="transition-delay: ${stepIndex * 100}ms;">${textContent}</div>`;
+                            }
+                        }).join('') + `</div>`;
+
+                        return sectionTitleHTML + stepsHTML;
+                    }).join('');
 
                 } else {
                     stepsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Steps are being configured. Please check back later.</p>';
