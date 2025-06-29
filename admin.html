@@ -765,7 +765,7 @@
             const selectedProductIds = Array.from(document.getElementById('flash-sale-products-list').children).map((el, index) => ({ product_id: parseInt(el.dataset.id), display_order: index }));
             try {
                 await db.from('flash_sale_settings').upsert(settingsUpdate);
-                await db.from('flash_sale_products').delete().neq('id', 0); // Clear existing
+                await db.from('flash_sale_products').delete().neq('id', 0);
                 if(selectedProductIds.length > 0) {
                     const { error } = await db.from('flash_sale_products').insert(selectedProductIds);
                     if (error) throw error;
@@ -781,7 +781,6 @@
             button.disabled = true;
 
             try {
-                // 1. Save general settings
                 if (howToBuySettingsCache && howToBuySettingsCache.id) {
                     const settingsUpdate = {
                         video_url: document.getElementById('how-to-buy-video-url').value.trim() || null,
@@ -792,7 +791,6 @@
                     if (settingsError) throw settingsError;
                 }
 
-                // 2. Process and save steps
                 const stepRows = document.querySelectorAll('.how-to-buy-step-row');
                 const stepPayloads = [];
                 for (const [index, row] of Array.from(stepRows).entries()) {
@@ -820,7 +818,6 @@
                 const recordsToUpdate = stepPayloads.filter(s => s.id);
                 const recordsToInsert = stepPayloads.filter(s => !s.id);
                 
-                // 3. Figure out which steps to delete
                 const { data: existingSteps } = await db.from('how_to_buy_steps').select('id');
                 const existingStepIds = (existingSteps || []).map(s => s.id);
                 const currentStepIds = recordsToUpdate.map(s => s.id);
@@ -830,18 +827,15 @@
                     await db.from('how_to_buy_steps').delete().in('id', idsToDelete);
                 }
                 
-                // 4. Update existing records
                 if (recordsToUpdate.length > 0) {
                     const { error: updateError } = await db.from('how_to_buy_steps').upsert(recordsToUpdate);
                     if (updateError) throw updateError;
                 }
                 
-                // 5. Insert new records (FIXED: remove temporary ID before insert)
                 if (recordsToInsert.length > 0) {
                      const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert.map(({ id, ...rest }) => rest));
                      if (insertError) throw insertError;
                 }
-
 
                 showAlert('Successfully saved "How-to-buy" page!');
                 newHowToBuyStepFiles.clear();
@@ -1001,14 +995,13 @@
                 e.stopPropagation();
                 newHowToBuyStepFiles.delete(row.dataset.id);
                 preview.src = '';
-                imageInput.value = ''; // Reset file input
+                imageInput.value = '';
                 preview.classList.add('hidden');
                 placeholder.classList.remove('hidden');
                 deleteImageBtn.classList.add('hidden');
             });
         }
         
-        // This function was missing. I've re-added it.
         function setupSocialRowListeners(row) {
             const logoBox = row.querySelector('.social-logo-box');
             const logoInput = row.querySelector('.social-logo-input');
