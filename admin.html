@@ -19,61 +19,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-main: #000000;
-            --bg-panel: #111111;
-            --border-color: #222222;
-            --accent-color: #FFFFFF;
-            --accent-hover: #DDDDDD;
-            --text-primary: #FFFFFF;
-            --text-secondary: #AAAAAA;
-            --danger-color: #EF4444;
-            --text-on-accent: #000000;
+            --bg-main: #000000; --bg-panel: #111111; --border-color: #222222; --accent-color: #FFFFFF;
+            --accent-hover: #DDDDDD; --text-primary: #FFFFFF; --text-secondary: #AAAAAA;
+            --danger-color: #EF4444; --text-on-accent: #000000;
         }
         html { scroll-behavior: smooth; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-        }
-        .panel {
-            background-color: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-        }
-        aside {
-            background-color: #000000;
-            border-right: 1px solid var(--border-color);
-            transition: transform 0.3s ease-in-out;
-        }
-        .tab-button {
-            display: flex; align-items: center; width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 500; color: var(--text-secondary); transition: all 0.2s ease;
-        }
-        .tab-button:hover {
-            background-color: var(--bg-panel);
-            color: var(--text-primary);
-        }
-        .tab-button.active {
-            background-color: var(--accent-color);
-            color: var(--text-on-accent);
-            font-weight: 600;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); }
+        .panel { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.75rem; }
+        aside { background-color: #000000; border-right: 1px solid var(--border-color); transition: transform 0.3s ease-in-out; }
+        .tab-button { display: flex; align-items: center; width: 100%; padding: 0.75rem 1rem; border-radius: 0.5rem; font-weight: 500; color: var(--text-secondary); transition: all 0.2s ease; }
+        .tab-button:hover { background-color: var(--bg-panel); color: var(--text-primary); }
+        .tab-button.active { background-color: var(--accent-color); color: var(--text-on-accent); font-weight: 600; }
         .label { font-weight: 500; font-size: 0.875rem; color: var(--text-secondary); }
-        .input, select.input, .dropdown-trigger {
-            width: 100%;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            transition: all 0.2s ease;
-            background-color: #222;
-            color: var(--text-primary);
-        }
+        .input, select.input, .dropdown-trigger { width: 100%; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.5rem 0.75rem; transition: all 0.2s ease; background-color: #222; color: var(--text-primary); }
         .dropdown-trigger { cursor: pointer; }
         .input::placeholder { color: #666; }
-        .input:focus, select.input:focus, .dropdown-trigger:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
-        }
+        .input:focus, select.input:focus, .dropdown-trigger:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3); }
         .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; transition: all 0.2s ease; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; }
         .btn-xs { padding: 0.25rem 0.5rem; font-size: 0.75rem; line-height: 1rem; }
         .btn:disabled { background-color: #222 !important; color: #666; border-color: #333 !important; cursor: not-allowed; }
@@ -83,28 +44,20 @@
         .btn-secondary:hover:not(:disabled) { background-color: var(--bg-panel); border-color: #444; }
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-danger:hover:not(:disabled) { background-color: #DC2626; }
-        
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .toggle-switch { position: relative; display: inline-block; width: 40px; height: 24px; }
         .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
         .toggle-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .toggle-slider { background-color: var(--accent-color); }
         input:checked + .toggle-slider:before { background-color: var(--text-on-accent); transform: translateX(16px); }
-        
         .custom-dropdown { position: relative; }
-        .dropdown-menu {
-            display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: var(--bg-panel);
-            border: 1px solid var(--border-color); border-radius: 0.5rem;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); z-index: 10; margin-top: 4px;
-        }
+        .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.5rem; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); z-index: 10; margin-top: 4px; }
         .dropdown-menu.up { top: auto; bottom: 100%; }
         .dropdown-menu.active { display: block; }
         .dropdown-item { padding: 0.5rem 0.75rem; cursor: pointer; display: flex; align-items: center; color: var(--text-secondary); }
         .dropdown-item:hover { background-color: #222; color: var(--text-primary); }
         .dropdown-item input[type="checkbox"] { margin-right: 0.5rem; border-radius: 0.25rem; border-color: #444; color: var(--accent-color); background-color: #222; }
         .dropdown-item input[type="checkbox"]:checked { background-color: var(--accent-color); }
-        
-        /* Flatpickr Theme Override */
         .flatpickr-calendar { background: #111 !important; border-color: var(--border-color) !important; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important; }
         .flatpickr-day, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: var(--text-primary) !important; }
         .flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover { background: #222 !important; border-color: #222 !important;}
@@ -113,21 +66,18 @@
         .flatpickr-time input.flatpickr-hour, .flatpickr-time input.flatpickr-minute, .flatpickr-time .flatpickr-am-pm { color: var(--text-primary) !important; }
         span.flatpickr-weekday, .numInput, .numInputWrapper span, .flatpickr-months .flatpickr-prev-month svg, .flatpickr-months .flatpickr-next-month svg { color: var(--text-secondary) !important; fill: var(--text-secondary) !important; }
         .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--text-primary) !important; }
-
         table thead { background-color: #1a1a1a; color: var(--text-secondary); }
         table tbody tr { border-bottom: 1px solid var(--border-color); }
         table tbody tr:last-child { border-bottom: none; }
         table tbody tr:hover { background-color: #1a1a1a; }
-        
-        .text-gradient { color: var(--text-primary); }
-        .sortable-ghost { background: #222; }
+        .sortable-ghost { background: #222; opacity: 0.5; }
         .sortable-chosen { cursor: grabbing; }
     </style>
 </head>
 <body class="bg-bg-main">
     <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
         <div class="w-full max-w-sm panel p-8">
-            <h1 class="text-3xl font-bold text-center text-gradient mb-6">Admin Panel</h1>
+            <h1 class="text-3xl font-bold text-center text-text-primary mb-6">Admin Panel</h1>
             <div class="space-y-4">
                 <div><label for="password" class="label block mb-1">Password:</label><input type="password" id="password" class="input" placeholder="••••••••"></div>
                 <button id="login-btn" class="w-full btn btn-primary">Login</button>
@@ -138,85 +88,25 @@
 
     <div id="admin-panel" class="hidden">
         <header class="md:hidden flex items-center justify-between px-4 py-2 bg-black/80 backdrop-blur-sm sticky top-0 z-20 border-b border-border-color">
-            <h1 class="text-xl font-bold text-gradient">Admin</h1>
-            <button id="mobile-menu-btn" class="p-2">
-                <i data-lucide="menu" class="h-6 w-6 text-accent-color"></i>
-            </button>
+            <h1 class="text-xl font-bold text-text-primary">Admin</h1>
+            <button id="mobile-menu-btn" class="p-2"><i data-lucide="menu" class="h-6 w-6 text-accent-color"></i></button>
         </header>
-
         <div class="relative flex min-h-screen">
             <div id="mobile-menu-overlay" class="md:hidden fixed inset-0 bg-black/50 z-30 hidden"></div>
-            
             <aside id="sidebar" class="w-64 p-4 flex-col fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0 md:flex">
-                <h1 class="text-2xl font-bold text-gradient px-2 pb-4 border-b border-border-color">Spreadsheet</h1>
+                <h1 class="text-2xl font-bold text-text-primary px-2 pb-4 border-b border-border-color">Spreadsheet</h1>
                 <nav id="sidebar-nav" class="mt-6 space-y-2 flex-grow"></nav>
-                <div class="pt-4 border-t border-border-color">
-                    <button id="logout-btn" class="w-full text-sm font-medium text-red-400 hover:text-danger-color text-left px-2 py-2 flex items-center">
-                        <i data-lucide="log-out" class="mr-2 h-4 w-4"></i>Logout
-                    </button>
-                </div>
+                <div class="pt-4 border-t border-border-color"><button id="logout-btn" class="w-full text-sm font-medium text-red-400 hover:text-danger-color text-left px-2 py-2 flex items-center"><i data-lucide="log-out" class="mr-2 h-4 w-4"></i>Logout</button></div>
             </aside>
-            
             <main class="flex-1 p-4 md:p-8 overflow-y-auto" id="main-content"></main>
         </div>
     </div>
 
+    <!-- Modals and Overlays -->
     <div id="edit-product-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="panel w-full max-w-2xl">
-            <div class="p-6 border-b border-border-color flex justify-between items-center">
-                <h3 class="text-lg font-semibold">Edit Product</h3>
-                <button id="close-modal-btn" class="p-1 rounded-full hover:bg-gray-700">
-                    <i data-lucide="x" class="h-5 w-5 text-gray-400"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                <input type="hidden" id="edit-product-id">
-                <div id="edit-image-paste-box" class="relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color">
-                    <p id="edit-image-placeholder">Click, drag, or paste an image</p>
-                    <img id="edit-preview-image" src="" class="hidden max-h-32 mx-auto rounded mt-2">
-                    <button id="delete-image-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
-                        <i data-lucide="trash-2" class="h-4 w-4"></i>
-                    </button>
-                </div>
-                <input type="file" id="edit-image-input" class="hidden" accept="image/*">
-                <div><label class="label">Product Name</label><input type="text" id="edit-product-name" class="input mt-1"></div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><label class="label">Original Price (CNY)</label><input type="number" id="edit-product-price" class="input mt-1"></div>
-                    <div><label class="label">Target URL</label><input type="text" id="edit-product-target-url" class="input mt-1" placeholder="https://store.com/product/..."></div>
-                </div>
-                <div id="edit-tags-container" class="space-y-2">
-                     <label class="label">Tags (e.g., Sales, Top Selling)</label>
-                     <div id="edit-tags-list" class="flex flex-wrap gap-2"></div>
-                </div>
-                <div class="p-4 rounded-lg bg-black border border-border-color">
-                    <p class="font-semibold mb-2 text-gray-300">Discount Settings</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                        <div class="sm:col-span-1"><label class="label">Discount Factor (e.g., 0.7)</label><input type="number" id="edit-product-discount-factor" class="input mt-1" step="0.01" min="0" max="1"></div>
-                        <div class="sm:col-span-2"><label class="label">Discount Expiry Date</label><input type="datetime-local" id="edit-product-discount-expires" class="input mt-1 flatpickr-input"></div>
-                    </div>
-                    <div class="flex justify-between items-center mt-2">
-                        <div class="flex items-center">
-                            <label class="toggle-switch"><input type="checkbox" id="edit-product-discount-active"><span class="toggle-slider"></span></label>
-                            <label for="edit-product-discount-active" class="ml-2 text-sm">Enable Discount</label>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm">Discount Price: <span id="calculated-discount-price" class="font-bold text-accent-color"></span></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-4 bg-black/50 rounded-b-lg text-right border-t border-border-color">
-                <button id="save-product-changes-btn" class="btn btn-primary">Save Changes</button>
-            </div>
-        </div>
+        <div class="panel w-full max-w-2xl"><div class="p-6 border-b border-border-color flex justify-between items-center"><h3 class="text-lg font-semibold">Edit Product</h3><button id="close-modal-btn" class="p-1 rounded-full hover:bg-gray-700"><i data-lucide="x" class="h-5 w-5 text-gray-400"></i></button></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><input type="hidden" id="edit-product-id"><div id="edit-image-paste-box" class="relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="edit-image-placeholder">Click, drag, or paste an image</p><img id="edit-preview-image" src="" class="hidden max-h-32 mx-auto rounded mt-2"><button id="delete-image-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="edit-image-input" class="hidden" accept="image/*"><div><label class="label">Product Name</label><input type="text" id="edit-product-name" class="input mt-1"></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="label">Original Price (CNY)</label><input type="number" id="edit-product-price" class="input mt-1"></div><div><label class="label">Target URL</label><input type="text" id="edit-product-target-url" class="input mt-1" placeholder="https://store.com/product/..."></div></div><div id="edit-tags-container" class="space-y-2"><label class="label">Tags (e.g., Sales, Top Selling)</label><div id="edit-tags-list" class="flex flex-wrap gap-2"></div></div><div class="p-4 rounded-lg bg-black border border-border-color"><p class="font-semibold mb-2 text-gray-300">Discount Settings</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center"><div class="sm:col-span-1"><label class="label">Discount Factor (e.g., 0.7)</label><input type="number" id="edit-product-discount-factor" class="input mt-1" step="0.01" min="0" max="1"></div><div class="sm:col-span-2"><label class="label">Discount Expiry Date</label><input type="datetime-local" id="edit-product-discount-expires" class="input mt-1 flatpickr-input"></div></div><div class="flex justify-between items-center mt-2"><div class="flex items-center"><label class="toggle-switch"><input type="checkbox" id="edit-product-discount-active"><span class="toggle-slider"></span></label><label for="edit-product-discount-active" class="ml-2 text-sm">Enable Discount</label></div><div class="text-right"><p class="text-sm">Discount Price: <span id="calculated-discount-price" class="font-bold text-accent-color"></span></p></div></div></div></div><div class="p-4 bg-black/50 rounded-b-lg text-right border-t border-border-color"><button id="save-product-changes-btn" class="btn btn-primary">Save Changes</button></div></div>
     </div>
-
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-bg-main/80 backdrop-blur-sm flex items-center justify-center z-[100]">
-        <div class="flex items-center">
-            <div class="w-8 h-8 border-4 border-gray-600 border-t-accent-color rounded-full animate-spin"></div>
-            <p class="ml-4 text-lg font-semibold text-text-primary">Processing...</p>
-        </div>
-    </div>
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-bg-main/80 backdrop-blur-sm flex items-center justify-center z-[100]"><div class="flex items-center"><div class="w-8 h-8 border-4 border-gray-600 border-t-accent-color rounded-full animate-spin"></div><p class="ml-4 text-lg font-semibold text-text-primary">Processing...</p></div></div>
 
     <script type="module">
         // --- Configuration ---
@@ -229,8 +119,8 @@
 
         // --- Global State ---
         let productsCache = [], tagsCache = [], navCache = [], socialLinksCache = [], currentAnalyticsData = [];
-        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null;
-        let newProductFiles = new Map(), newSocialFiles = new Map();
+        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null, sortableHowToBuyInstance = null;
+        let newProductFiles = new Map(), newSocialFiles = new Map(), newHowToBuyStepFiles = new Map();
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
 
@@ -248,9 +138,10 @@
             products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Category</th><th class="p-4">Tags</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list" class="divide-y divide-border-color"></tbody></table></div></div></div>`,
             tags: `<h2 class="text-2xl font-bold text-text-primary mb-6">Tag Management</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage special tags like "Sales", "Top Selling", etc. Drag to reorder.</p><div class="flex items-center gap-2 mb-4"><input type="text" id="new-tag-input" class="input flex-grow" placeholder="Enter new tag name (e.g., Sales)"><button id="add-tag-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="tag-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-tags-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             navigation: `<h2 class="text-2xl font-bold text-text-primary mb-6">Navigation (Categories)</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage the category filter buttons on the homepage. Drag to reorder.</p><div id="navigation-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-nav-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Nav Item</button></div><div class="text-right mt-4"><button id="save-nav-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
-            settings: `<h2 class="text-2xl font-bold text-text-primary mb-6">Site Settings</h2><div class="panel p-6 space-y-6 max-w-2xl"><div><label for="siteTitle" class="label">Main Title</label><input type="text" id="siteTitle" class="input mt-1"></div><div><label for="siteSubtitle" class="label">Subtitle</label><textarea id="siteSubtitle" class="input mt-1" rows="2"></textarea></div><div><label for="videoUrl" class="label">Tutorial Video URL</label><input type="text" id="videoUrl" class="input mt-1"><p class="text-xs text-text-secondary mt-1">Hint: Use YouTube's "embed" link format.</p></div><div><label class="label">Hero Background Image</label><div id="hero-bg-upload-box" class="mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="hero-bg-placeholder">Click to upload or drag an image here</p><img id="hero-bg-preview" src="" class="hidden max-h-32 mx-auto rounded"><button id="delete-hero-bg-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="hero-bg-input" class="hidden" accept="image/*"></div><div class="text-right pt-4 border-t border-border-color"><button id="save-settings-btn" class="btn btn-primary">Save Settings</button></div></div>`,
+            settings: `<h2 class="text-2xl font-bold text-text-primary mb-6">Site Settings</h2><div class="panel p-6 space-y-6 max-w-2xl"><div><label for="siteTitle" class="label">Main Title</label><input type="text" id="siteTitle" class="input mt-1"></div><div><label for="siteSubtitle" class="label">Subtitle</label><textarea id="siteSubtitle" class="input mt-1" rows="2"></textarea></div><div><label class="label">Hero Background Image</label><div id="hero-bg-upload-box" class="mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="hero-bg-placeholder">Click to upload or drag an image here</p><img id="hero-bg-preview" src="" class="hidden max-h-32 mx-auto rounded"><button id="delete-hero-bg-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="hero-bg-input" class="hidden" accept="image/*"></div><div class="text-right pt-4 border-t border-border-color"><button id="save-settings-btn" class="btn btn-primary">Save Settings</button></div></div>`,
             social: `<h2 class="text-2xl font-bold text-text-primary mb-6">Social Media Links</h2><div class="panel p-6 max-w-2xl"><div id="social-links-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-social-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Social Link</button></div><div class="text-right mt-4"><button id="save-social-btn" class="btn btn-primary">Save Social Links</button></div></div>`,
-            flash_sale: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Flash Sale Management</h2><button id="save-flash-sale-btn" class="btn btn-primary"><i data-lucide="save" class="mr-2 h-4 w-4"></i>Save Changes</button></div><div class="panel p-6 mb-8"><h3 class="text-lg font-semibold mb-4 text-text-primary">Activity Settings</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center"><div><label for="flash-sale-end-time" class="label">Countdown End Time</label><input type="datetime-local" id="flash-sale-end-time" class="input mt-1 flatpickr-input"></div><div class="flex items-center"><label class="toggle-switch"><input type="checkbox" id="flash-sale-active-toggle"><span class="toggle-slider"></span></label><label for="flash-sale-active-toggle" class="ml-3">Enable Flash Sale</label></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Available Products</h3><div id="all-products-list" class="space-y-2 h-96 overflow-y-auto border border-border-color p-2 rounded-lg bg-black/50"></div></div><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Flash Sale Products (Drag to sort)</h3><div id="flash-sale-products-list" class="space-y-2 h-96 overflow-y-auto border border-border-color p-2 rounded-lg bg-black/50"></div></div></div>`
+            flash_sale: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Flash Sale Management</h2><button id="save-flash-sale-btn" class="btn btn-primary"><i data-lucide="save" class="mr-2 h-4 w-4"></i>Save Changes</button></div><div class="panel p-6 mb-8"><h3 class="text-lg font-semibold mb-4 text-text-primary">Activity Settings</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center"><div><label for="flash-sale-end-time" class="label">Countdown End Time</label><input type="datetime-local" id="flash-sale-end-time" class="input mt-1 flatpickr-input"></div><div class="flex items-center"><label class="toggle-switch"><input type="checkbox" id="flash-sale-active-toggle"><span class="toggle-slider"></span></label><label for="flash-sale-active-toggle" class="ml-3">Enable Flash Sale</label></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Available Products</h3><div id="all-products-list" class="space-y-2 h-96 overflow-y-auto border border-border-color p-2 rounded-lg bg-black/50"></div></div><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Flash Sale Products (Drag to sort)</h3><div id="flash-sale-products-list" class="space-y-2 h-96 overflow-y-auto border border-border-color p-2 rounded-lg bg-black/50"></div></div></div>`,
+            how_to_buy: `<div class="space-y-8"><div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-text-primary">"How-to-buy" Page Management</h2><button id="save-how-to-buy-btn" class="btn btn-primary"><i data-lucide="save" class="mr-2 h-4 w-4"></i>Save All Changes</button></div><div class="panel p-6 space-y-6"><h3 class="text-lg font-semibold text-text-primary">General Settings</h3><div><label for="how-to-buy-video-url" class="label">Tutorial Video URL</label><input type="text" id="how-to-buy-video-url" class="input mt-1" placeholder="Enter YouTube 'embed' link"></div><div><label for="how-to-buy-signup-url" class="label">Sign Up Button Link</label><input type="text" id="how-to-buy-signup-url" class="input mt-1" placeholder="Enter the link for the sign up button"></div></div><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Tutorial Steps</h3><p class="text-sm text-text-secondary mb-4">Add, remove, or reorder the steps for the tutorial. Drag to reorder.</p><div id="how-to-buy-steps-container" class="space-y-4"></div><div class="mt-6"><button id="add-how-to-buy-step-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add New Step</button></div></div></div>`
         };
 
         // --- Core Logic ---
@@ -265,6 +156,7 @@
                 case 'navigation': initNavigationPanel(); break;
                 case 'social': initSocialLinksPanel(); break;
                 case 'flash_sale': initFlashSalePanel(); break;
+                case 'how_to_buy': initHowToBuyPanel(); break;
             }
         }
         function showLoading(show) { loadingOverlay.classList.toggle('hidden', !show); }
@@ -276,7 +168,7 @@
             setTimeout(() => { alertBox.remove(); }, 3000);
         }
         
-        // --- Panel Initializers (Set up main event listeners once per panel) ---
+        // --- Panel Initializers ---
         function initDashboard() {
             document.getElementById('export-excel-btn').addEventListener('click', exportAnalyticsToExcel);
             const datePicker = document.getElementById('date-range-picker');
@@ -316,19 +208,22 @@
             loadFlashSaleData();
         }
 
+        function initHowToBuyPanel() {
+            document.getElementById('save-how-to-buy-btn').addEventListener('click', saveHowToBuyData);
+            document.getElementById('add-how-to-buy-step-btn').addEventListener('click', () => renderHowToBuyStep());
+            loadHowToBuyData();
+        }
+
         // --- Data Loading Functions ---
         async function loadSettings() {
             const { data } = await db.from('settings').select('*').limit(1).single();
             if (data) {
                 document.getElementById('siteTitle').value = data.site_title || '';
                 document.getElementById('siteSubtitle').value = data.site_subtitle || '';
-                document.getElementById('videoUrl').value = data.video_url || '';
-                
                 currentHeroBgUrl = data.hero_background_url;
                 const preview = document.getElementById('hero-bg-preview');
                 const placeholder = document.getElementById('hero-bg-placeholder');
                 const deleteBtn = document.getElementById('delete-hero-bg-btn');
-                
                 if (currentHeroBgUrl) {
                     preview.src = currentHeroBgUrl;
                     preview.classList.remove('hidden');
@@ -354,11 +249,7 @@
             navCache.filter(item => item.link_text.toLowerCase() !== 'home').forEach(item => renderNavItem(item));
             
             if (sortableNavInstance) sortableNavInstance.destroy();
-            sortableNavInstance = new Sortable(navList, { 
-                animation: 150, 
-                ghostClass: 'bg-gray-800',
-                handle: '.cursor-move'
-            });
+            sortableNavInstance = new Sortable(navList, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move' });
             lucide.createIcons();
         }
 
@@ -374,11 +265,7 @@
 
             lucide.createIcons();
             if (sortableTagsInstance) sortableTagsInstance.destroy();
-            sortableTagsInstance = new Sortable(tagList, { 
-                animation: 150, 
-                ghostClass: 'bg-gray-800',
-                handle: '.cursor-move'
-            });
+            sortableTagsInstance = new Sortable(tagList, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move' });
         }
         
         async function loadSocialLinks() {
@@ -392,7 +279,7 @@
             if (socialLinksCache.length > 0) {
                 socialLinksCache.forEach(item => addSocialRow(item));
             } else {
-                 addSocialRow();
+                addSocialRow();
             }
         }
 
@@ -458,8 +345,76 @@
 
             lucide.createIcons();
             if (sortableInstance) sortableInstance.destroy();
-            sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'bg-gray-800', handle: '.cursor-move', onEnd: saveProductOrder });
+            sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
+        }
+        
+        async function loadFlashSaleData() {
+            showLoading(true);
+            const [settingsRes, allProductsRes, flashSaleProductsRes] = await Promise.all([
+                db.from('flash_sale_settings').select('*').single(),
+                db.from('products').select('*').eq('is_active', true).order('name'),
+                db.from('flash_sale_products').select('product_id').order('display_order')
+            ]);
+            showLoading(false);
+
+            const settings = settingsRes.data;
+            if (settings) {
+                document.getElementById('flash-sale-active-toggle').checked = settings.is_active;
+                initFlatpickr(document.getElementById('flash-sale-end-time'), settings.end_time);
+            }
+
+            const allProductsList = document.getElementById('all-products-list');
+            const flashSaleProductsList = document.getElementById('flash-sale-products-list');
+            allProductsList.innerHTML = ''; flashSaleProductsList.innerHTML = '';
+
+            const allProducts = allProductsRes.data || [];
+            const flashSaleProductIds = new Set((flashSaleProductsRes.data || []).map(p => p.product_id));
+            const flashSaleProducts = allProducts.filter(p => flashSaleProductIds.has(p.id));
+            const orderedFlashSaleProducts = (flashSaleProductsRes.data || []).map(orderedItem => flashSaleProducts.find(p => p.id === orderedItem.product_id)).filter(Boolean);
+            const availableProducts = allProducts.filter(p => !flashSaleProductIds.has(p.id));
+
+            availableProducts.forEach(p => renderProductSelectionItem(p, allProductsList, false));
+            orderedFlashSaleProducts.forEach(p => renderProductSelectionItem(p, flashSaleProductsList, true));
+            
+            if (sortableFlashSaleInstance) sortableFlashSaleInstance.destroy();
+            sortableFlashSaleInstance = new Sortable(flashSaleProductsList, { animation: 150, ghostClass: 'bg-gray-900', group: 'flash-sale' });
+            new Sortable(allProductsList, { group: 'flash-sale', animation: 150, ghostClass: 'bg-gray-900' });
+
+
+            lucide.createIcons();
+        }
+
+        async function loadHowToBuyData() {
+            showLoading(true);
+            const [settingsRes, stepsRes] = await Promise.all([
+                db.from('how_to_buy_settings').select('*').limit(1).single(),
+                db.from('how_to_buy_steps').select('*').order('display_order')
+            ]);
+            showLoading(false);
+
+            if (settingsRes.error || stepsRes.error) {
+                showAlert('Failed to load "How-to-buy" data.', true);
+                return;
+            }
+
+            const settings = settingsRes.data;
+            if (settings) {
+                document.getElementById('how-to-buy-video-url').value = settings.video_url || '';
+                document.getElementById('how-to-buy-signup-url').value = settings.signup_url || '';
+            }
+
+            const stepsContainer = document.getElementById('how-to-buy-steps-container');
+            stepsContainer.innerHTML = '';
+            const steps = stepsRes.data || [];
+            if (steps.length > 0) {
+                steps.forEach(step => renderHowToBuyStep(step));
+            } else {
+                renderHowToBuyStep(); // Render one empty step if none exist
+            }
+
+            if (sortableHowToBuyInstance) sortableHowToBuyInstance.destroy();
+            sortableHowToBuyInstance = new Sortable(stepsContainer, { animation: 150, ghostClass: 'sortable-ghost', handle: '.drag-handle' });
         }
 
         // --- HTML Element Renderers ---
@@ -469,8 +424,7 @@
             const div = document.createElement('div');
             div.className = 'flex items-center gap-2 nav-item-row p-2 bg-bg-panel rounded';
             div.dataset.id = item.id || `new_${Date.now()}`;
-            div.innerHTML = `<i data-lucide="grip-vertical" class="cursor-move text-gray-500 flex-shrink-0"></i><input type="text" value="${item.link_text || ''}" class="input nav-text w-1/3" placeholder="Link Text"><input type="text" value="${item.link_url || ''}" class="input nav-url w-2/3" placeholder="URL is auto-generated" disabled><button class="delete-nav-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
-            div.querySelector('.nav-text').addEventListener('input', (e) => { e.target.nextElementSibling.value = e.target.value.trim() ? `${BASE_URL}?category=${encodeURIComponent(e.target.value.trim())}` : ''; });
+            div.innerHTML = `<i data-lucide="grip-vertical" class="cursor-move text-gray-500 flex-shrink-0"></i><input type="text" value="${item.link_text || ''}" class="input nav-text flex-grow" placeholder="Link Text"><button class="delete-nav-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
             div.querySelector('.delete-nav-btn').addEventListener('click', () => div.remove());
             navList.appendChild(div);
             if (isNew) lucide.createIcons();
@@ -506,27 +460,6 @@
             lucide.createIcons();
         }
         
-        function setupSocialRowListeners(row) {
-            const logoBox = row.querySelector('.social-logo-box');
-            const logoInput = row.querySelector('.social-logo-input');
-            const previewImage = row.querySelector('.social-logo-preview');
-            const placeholder = row.querySelector('.social-logo-placeholder');
-            logoBox.addEventListener('click', () => logoInput.click());
-            logoInput.addEventListener('change', (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                    newSocialFiles.set(row.dataset.id, file);
-                    previewImage.src = URL.createObjectURL(file);
-                    previewImage.classList.remove('hidden');
-                    placeholder.classList.add('hidden');
-                }
-            });
-            row.querySelector('.delete-social-btn').addEventListener('click', () => {
-                newSocialFiles.delete(row.dataset.id);
-                row.remove();
-            });
-        }
-        
         function addProductFormRow() {
             const container = document.getElementById('add-product-forms-container');
             if (!container) return;
@@ -559,7 +492,53 @@
                 div.remove();
             });
         }
+        
+        function renderProductSelectionItem(product, container) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-2 rounded-lg border border-border-color bg-bg-panel cursor-move';
+            div.dataset.id = product.id;
+            let discountTag = '';
+            if (product.discount_is_active && product.discount_factor) {
+                discountTag = `<span class="ml-2 text-xs font-bold text-black bg-yellow-400 px-2 py-0.5 rounded-full">${Math.round((1-product.discount_factor)*100)}% off</span>`;
+            }
+            div.innerHTML = `<div class="flex items-center gap-2 overflow-hidden"><img src="${product.image_url || 'https://placehold.co/32x32/111111/AAAAAA?text=??'}" class="w-8 h-8 object-cover rounded flex-shrink-0"><span class="text-sm font-medium truncate">${product.name}</span>${discountTag}</div>`;
+            container.appendChild(div);
+        }
 
+        function renderHowToBuyStep(step = {}) {
+            const container = document.getElementById('how-to-buy-steps-container');
+            if (!container) return;
+            const stepId = step.id || `new_${Date.now()}`;
+            const div = document.createElement('div');
+            div.className = 'how-to-buy-step-row p-4 border border-border-color rounded-lg bg-black/30 space-y-4';
+            div.dataset.id = stepId;
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="grip-vertical" class="drag-handle cursor-move text-gray-500"></i>
+                        <h4 class="font-semibold text-text-secondary">Step #${container.children.length + 1}</h4>
+                    </div>
+                    <button class="delete-step-btn btn btn-danger btn-xs"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-4">
+                        <div><label class="label">Title</label><input type="text" class="input mt-1 step-title" value="${step.title || ''}"></div>
+                        <div><label class="label">Description</label><textarea class="input mt-1 step-description" rows="3">${step.description || ''}</textarea></div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label">Image</label>
+                        <div class="step-image-upload-box relative p-4 rounded-lg text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color">
+                            <p class="step-image-placeholder ${step.image_url ? 'hidden' : ''}">Click or drag image</p>
+                            <img src="${step.image_url || ''}" class="step-image-preview ${step.image_url ? '' : 'hidden'} max-h-24 mx-auto rounded">
+                        </div>
+                        <input type="file" class="hidden step-image-input" accept="image/*">
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            setupStepRowListeners(div);
+            lucide.createIcons();
+        }
 
         // --- Data Saving Functions ---
         async function saveSettings(e) {
@@ -575,7 +554,6 @@
                 id: 1,
                 site_title: document.getElementById('siteTitle').value,
                 site_subtitle: document.getElementById('siteSubtitle').value,
-                video_url: document.getElementById('videoUrl').value,
                 hero_background_url: uploadedHeroBgUrl
             };
             const { error } = await db.from('settings').upsert(updates);
@@ -585,11 +563,8 @@
                 currentHeroBgFile = null;
             }
             button.disabled = false; button.innerHTML = 'Save Settings';
-            lucide.createIcons({
-                nodes: [button]
-            });
         }
-
+        
         async function saveNavigation(e) {
             const button = e.target;
             button.disabled = true; showLoading(true);
@@ -598,14 +573,8 @@
             const updates = Array.from(navRows).map((row, index) => {
                 const id = row.dataset.id;
                 const linkText = row.querySelector('.nav-text').value.trim();
-                const record = { 
-                    link_text: linkText, 
-                    link_url: linkText ? `${BASE_URL}?category=${encodeURIComponent(linkText)}` : '', 
-                    display_order: index 
-                };
-                if (!id.startsWith('new_')) {
-                    record.id = parseInt(id);
-                }
+                const record = { link_text: linkText, display_order: index };
+                if (!id.startsWith('new_')) { record.id = parseInt(id); }
                 return record;
             }).filter(r => r.link_text);
 
@@ -616,22 +585,12 @@
 
             try {
                 if (idsToDelete.length > 0) await db.from('navigation').delete().in('id', idsToDelete);
-                
-                if (recordsToUpdate.length > 0) {
-                     const { error } = await db.from('navigation').upsert(recordsToUpdate);
-                     if (error) throw error;
-                }
-                if (recordsToInsert.length > 0) {
-                     const { error } = await db.from('navigation').insert(recordsToInsert.map(({id, ...rest}) => rest));
-                     if (error) throw error;
-                }
+                if (recordsToUpdate.length > 0) await db.from('navigation').upsert(recordsToUpdate);
+                if (recordsToInsert.length > 0) await db.from('navigation').insert(recordsToInsert.map(({id, ...rest}) => rest));
                 showAlert('Navigation updated!'); 
                 await loadNavigation();
-            } catch (error) { 
-                showAlert('Navigation save failed: ' + error.message, true);
-            } finally { 
-                showLoading(false); button.disabled = false; 
-            }
+            } catch (error) { showAlert('Navigation save failed: ' + error.message, true);
+            } finally { showLoading(false); button.disabled = false; }
         }
 
         async function saveTags(e) {
@@ -644,9 +603,7 @@
                 const id = row.dataset.id;
                 const name = row.querySelector('.tag-name-input').value.trim();
                 const record = { name, display_order: index };
-                if (!id.startsWith('new_')) {
-                    record.id = parseInt(id);
-                }
+                if (!id.startsWith('new_')) { record.id = parseInt(id); }
                 return record;
             }).filter(r => r.name);
 
@@ -659,15 +616,10 @@
                 if (idsToDelete.length > 0) await db.from('product_tags').delete().in('id', idsToDelete);
                 if (recordsToUpdate.length > 0) await db.from('product_tags').upsert(recordsToUpdate);
                 if (recordsToInsert.length > 0) await db.from('product_tags').insert(recordsToInsert.map(({id, ...rest}) => rest));
-                
                 showAlert('Tags updated!');
                 await loadTags();
-            } catch (error) {
-                showAlert('Tags save failed: ' + error.message, true);
-            } finally {
-                showLoading(false);
-                button.disabled = false;
-            }
+            } catch (error) { showAlert('Tags save failed: ' + error.message, true);
+            } finally { showLoading(false); button.disabled = false; }
         }
 
         async function saveSocialLinks(e) {
@@ -707,22 +659,13 @@
 
             try {
                 if (idsToDelete.length > 0) await db.from('social_links').delete().in('id', idsToDelete);
-                if (recordsToUpdate.length > 0) {
-                     const { error } = await db.from('social_links').upsert(recordsToUpdate);
-                     if (error) throw error;
-                }
-                if (recordsToInsert.length > 0) {
-                     const { error } = await db.from('social_links').insert(recordsToInsert.map(({id, ...rest}) => rest));
-                     if (error) throw error;
-                }
+                if (recordsToUpdate.length > 0) await db.from('social_links').upsert(recordsToUpdate);
+                if (recordsToInsert.length > 0) await db.from('social_links').insert(recordsToInsert.map(({id, ...rest}) => rest));
                 showAlert('Social links updated!'); 
                 newSocialFiles.clear(); 
                 await loadSocialLinks();
-            } catch (error) { 
-                showAlert('Save failed: ' + error.message, true);
-            } finally { 
-                showLoading(false); button.disabled = false; 
-            }
+            } catch (error) { showAlert('Save failed: ' + error.message, true);
+            } finally { showLoading(false); button.disabled = false; }
         }
 
         async function submitAllNewProducts() {
@@ -810,6 +753,91 @@
             }
         }
 
+        async function saveFlashSaleData() {
+            showLoading(true);
+            const endTimeValue = document.getElementById('flash-sale-end-time').value;
+            const settingsUpdate = { id: 1, is_active: document.getElementById('flash-sale-active-toggle').checked, end_time: endTimeValue ? new Date(endTimeValue).toISOString() : null, updated_at: new Date().toISOString() };
+            const selectedProductIds = Array.from(document.getElementById('flash-sale-products-list').children).map((el, index) => ({ product_id: parseInt(el.dataset.id), display_order: index }));
+            try {
+                await db.from('flash_sale_settings').upsert(settingsUpdate);
+                await db.from('flash_sale_products').delete().neq('id', 0); // Clear existing
+                if(selectedProductIds.length > 0) {
+                    const { error } = await db.from('flash_sale_products').insert(selectedProductIds);
+                    if (error) throw error;
+                }
+                showAlert('Flash sale settings saved!');
+            } catch (error) { showAlert('Save failed: ' + error.message, true);
+            } finally { showLoading(false); }
+        }
+
+        async function saveHowToBuyData() {
+            showLoading(true);
+            const button = document.getElementById('save-how-to-buy-btn');
+            button.disabled = true;
+
+            try {
+                // 1. Save general settings
+                const settingsUpdate = {
+                    id: 1,
+                    video_url: document.getElementById('how-to-buy-video-url').value.trim() || null,
+                    signup_url: document.getElementById('how-to-buy-signup-url').value.trim() || null,
+                    updated_at: new Date().toISOString()
+                };
+                const { error: settingsError } = await db.from('how_to_buy_settings').upsert(settingsUpdate);
+                if (settingsError) throw settingsError;
+
+                // 2. Process and save steps
+                const stepRows = document.querySelectorAll('.how-to-buy-step-row');
+                const stepUpdates = [];
+                for (const [index, row] of Array.from(stepRows).entries()) {
+                    const stepId = row.dataset.id;
+                    let imageUrl = row.querySelector('.step-image-preview').src;
+                    const imageFile = newHowToBuyStepFiles.get(stepId);
+
+                    if (imageFile) {
+                        imageUrl = await uploadImage(imageFile, 'how-to-buy-steps');
+                    }
+                    
+                    const record = {
+                        display_order: index,
+                        title: row.querySelector('.step-title').value.trim(),
+                        description: row.querySelector('.step-description').value.trim(),
+                        image_url: imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : null
+                    };
+
+                    if (!stepId.startsWith('new_')) {
+                        record.id = parseInt(stepId);
+                    }
+                    stepUpdates.push(record);
+                }
+
+                // 3. Figure out which steps to delete
+                const existingStepsRes = await db.from('how_to_buy_steps').select('id');
+                const existingStepIds = (existingStepsRes.data || []).map(s => s.id);
+                const currentStepIds = stepUpdates.filter(s => s.id).map(s => s.id);
+                const idsToDelete = existingStepIds.filter(id => !currentStepIds.includes(id));
+
+                if (idsToDelete.length > 0) {
+                    await db.from('how_to_buy_steps').delete().in('id', idsToDelete);
+                }
+                
+                // 4. Upsert the remaining steps
+                const { error: stepsError } = await db.from('how_to_buy_steps').upsert(stepUpdates);
+                if (stepsError) throw stepsError;
+
+                showAlert('Successfully saved "How-to-buy" page!');
+                newHowToBuyStepFiles.clear();
+                await loadHowToBuyData();
+
+            } catch (error) {
+                showAlert('Save failed: ' + error.message, true);
+            } finally {
+                showLoading(false);
+                button.disabled = false;
+            }
+        }
+
+        // --- Utility Functions ---
         async function uploadImage(file, bucket = 'product-images') {
             if (!file) return null;
             const fileName = `public/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
@@ -925,6 +953,31 @@
             };
         }
         
+        function setupStepRowListeners(row) {
+            row.querySelector('.delete-step-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this step?')) {
+                    newHowToBuyStepFiles.delete(row.dataset.id);
+                    row.remove();
+                }
+            });
+
+            const imageBox = row.querySelector('.step-image-upload-box');
+            const imageInput = row.querySelector('.step-image-input');
+            const preview = row.querySelector('.step-image-preview');
+            const placeholder = row.querySelector('.step-image-placeholder');
+
+            imageBox.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', e => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    newHowToBuyStepFiles.set(row.dataset.id, file);
+                    preview.src = URL.createObjectURL(file);
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                }
+            });
+        }
+
         function handleHeroBgFileSelect(e) {
             if (e.target.files?.[0]) {
                 currentHeroBgFile = e.target.files[0];
@@ -1004,13 +1057,28 @@
         }
 
         function setupSidebarNav() {
-            sidebarNav.innerHTML = `<button data-target="dashboard" class="tab-button active"><i data-lucide="layout-dashboard" class="mr-3 h-5 w-5"></i>Dashboard</button><button data-target="flash_sale" class="tab-button"><i data-lucide="zap" class="mr-3 h-5 w-5"></i>Flash Sale</button><button data-target="products" class="tab-button"><i data-lucide="package" class="mr-3 h-5 w-5"></i>Products</button><button data-target="tags" class="tab-button"><i data-lucide="tag" class="mr-3 h-5 w-5"></i>Tags</button><button data-target="navigation" class="tab-button"><i data-lucide="list" class="mr-3 h-5 w-5"></i>Navigation</button><button data-target="settings" class="tab-button"><i data-lucide="sliders-horizontal" class="mr-3 h-5 w-5"></i>Site Settings</button><button data-target="social" class="tab-button"><i data-lucide="share-2" class="mr-3 h-5 w-5"></i>Social Media</button>`;
+            sidebarNav.innerHTML = `
+                <button data-target="dashboard" class="tab-button active"><i data-lucide="layout-dashboard" class="mr-3 h-5 w-5"></i>Dashboard</button>
+                <button data-target="products" class="tab-button"><i data-lucide="package" class="mr-3 h-5 w-5"></i>Products</button>
+                <button data-target="flash_sale" class="tab-button"><i data-lucide="zap" class="mr-3 h-5 w-5"></i>Flash Sale</button>
+                <button data-target="tags" class="tab-button"><i data-lucide="tag" class="mr-3 h-5 w-5"></i>Tags</button>
+                <div class="px-3 py-2 text-xs uppercase text-gray-500 font-semibold tracking-wider">Pages</div>
+                <button data-target="how_to_buy" class="tab-button"><i data-lucide="book-open" class="mr-3 h-5 w-5"></i>How-to-buy</button>
+                <button data-target="navigation" class="tab-button"><i data-lucide="list" class="mr-3 h-5 w-5"></i>Categories</button>
+                <div class="px-3 py-2 text-xs uppercase text-gray-500 font-semibold tracking-wider">Settings</div>
+                <button data-target="settings" class="tab-button"><i data-lucide="sliders-horizontal" class="mr-3 h-5 w-5"></i>Site Settings</button>
+                <button data-target="social" class="tab-button"><i data-lucide="share-2" class="mr-3 h-5 w-5"></i>Social Media</button>
+            `;
             sidebarNav.querySelectorAll('.tab-button').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const targetPanel = e.currentTarget.dataset.target;
                     sidebarNav.querySelector('.active')?.classList.remove('active');
                     e.currentTarget.classList.add('active');
                     renderPanel(targetPanel);
+                    const sidebar = document.getElementById('sidebar');
+                    if(window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                        toggleMenu();
+                    }
                 });
             });
             lucide.createIcons();
@@ -1020,9 +1088,9 @@
             if (!element) return;
             const options = { enableTime: true, dateFormat: "Y-m-d H:i" };
             if(defaultDateStr) {
-                 const d = new Date(defaultDateStr);
-                 d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                 options.defaultDate = d.toISOString().slice(0,16);
+                const d = new Date(defaultDateStr);
+                d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                options.defaultDate = d.toISOString().slice(0,16);
             }
             flatpickr(element, options);
         }
@@ -1078,11 +1146,7 @@
             
             const chartOptions = {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
-                        labels: { color: '#FFFFFF' } 
-                    } 
-                },
+                plugins: { legend: { labels: { color: '#FFFFFF' } } },
                 scales: {
                     x: { ticks: { color: '#FFFFFF' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
                     y: { ticks: { color: '#FFFFFF' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, beginAtZero: true }
@@ -1109,75 +1173,6 @@
             } finally { showLoading(false); }
         }
         
-        async function loadFlashSaleData() {
-            showLoading(true);
-            const [settingsRes, allProductsRes, flashSaleProductsRes] = await Promise.all([
-                db.from('flash_sale_settings').select('*').single(),
-                db.from('products').select('*').eq('is_active', true).order('name'),
-                db.from('flash_sale_products').select('product_id').order('display_order')
-            ]);
-            showLoading(false);
-
-            const settings = settingsRes.data;
-            if (settings) {
-                document.getElementById('flash-sale-active-toggle').checked = settings.is_active;
-                initFlatpickr(document.getElementById('flash-sale-end-time'), settings.end_time);
-            }
-
-            const allProductsList = document.getElementById('all-products-list');
-            const flashSaleProductsList = document.getElementById('flash-sale-products-list');
-            allProductsList.innerHTML = ''; flashSaleProductsList.innerHTML = '';
-
-            const allProducts = allProductsRes.data || [];
-            const flashSaleProductIds = new Set((flashSaleProductsRes.data || []).map(p => p.product_id));
-            const flashSaleProducts = allProducts.filter(p => flashSaleProductIds.has(p.id));
-            const orderedFlashSaleProducts = (flashSaleProductsRes.data || []).map(orderedItem => flashSaleProducts.find(p => p.id === orderedItem.product_id)).filter(Boolean);
-            const availableProducts = allProducts.filter(p => !flashSaleProductIds.has(p.id));
-
-            availableProducts.forEach(p => renderProductSelectionItem(p, allProductsList, false));
-            orderedFlashSaleProducts.forEach(p => renderProductSelectionItem(p, flashSaleProductsList, true));
-            
-            if (sortableFlashSaleInstance) sortableFlashSaleInstance.destroy();
-            sortableFlashSaleInstance = new Sortable(flashSaleProductsList, { animation: 150, ghostClass: 'bg-gray-900' });
-
-            lucide.createIcons();
-        }
-
-        function renderProductSelectionItem(product, container, isInSale) {
-            const div = document.createElement('div');
-            div.className = 'flex items-center justify-between p-2 rounded-lg border border-border-color';
-            div.dataset.id = product.id;
-            let discountTag = '';
-            if (product.discount_is_active && product.discount_factor) {
-                discountTag = `<span class="ml-2 text-xs font-bold text-black bg-yellow-400 px-2 py-0.5 rounded-full">${Math.round((1-product.discount_factor)*100)}% off</span>`;
-            }
-            div.innerHTML = `<div class="flex items-center gap-2 overflow-hidden">${isInSale ? '<i data-lucide="grip-vertical" class="cursor-move text-gray-400 mr-2"></i>' : ''}<img src="${product.image_url || 'https://placehold.co/32x32/111111/AAAAAA?text=??'}" class="w-8 h-8 object-cover rounded"><span class="text-sm font-medium truncate">${product.name}</span>${discountTag}</div><button class="flash-sale-product-btn p-1 rounded-full hover:bg-gray-700">${isInSale ? '<i data-lucide="minus-circle" class="h-5 w-5 text-text-secondary"></i>' : '<i data-lucide="plus-circle" class="h-5 w-5 text-text-secondary"></i>'}</button>`;
-            container.appendChild(div);
-            div.querySelector('.flash-sale-product-btn').addEventListener('click', () => {
-                const targetList = isInSale ? document.getElementById('all-products-list') : document.getElementById('flash-sale-products-list');
-                div.remove();
-                renderProductSelectionItem(product, targetList, !isInSale);
-                lucide.createIcons();
-            });
-        }
-
-        async function saveFlashSaleData() {
-            showLoading(true);
-            const endTimeValue = document.getElementById('flash-sale-end-time').value;
-            const settingsUpdate = { id: 1, is_active: document.getElementById('flash-sale-active-toggle').checked, end_time: endTimeValue ? new Date(endTimeValue).toISOString() : null, updated_at: new Date().toISOString() };
-            const selectedProductIds = Array.from(document.getElementById('flash-sale-products-list').children).map((el, index) => ({ product_id: parseInt(el.dataset.id), display_order: index }));
-            try {
-                await db.from('flash_sale_settings').upsert(settingsUpdate);
-                await db.from('flash_sale_products').delete().neq('id', 0);
-                if(selectedProductIds.length > 0) {
-                    const { error } = await db.from('flash_sale_products').insert(selectedProductIds);
-                    if (error) throw error;
-                }
-                showAlert('Flash sale settings saved!');
-            } catch (error) { showAlert('Save failed: ' + error.message, true);
-            } finally { showLoading(false); }
-        }
-
         // --- Authentication and Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             const passwordInput = document.getElementById('password');
@@ -1246,18 +1241,15 @@
                 imageInput.value = '';
             });
 
-            // Check for existing token on page load
             const existingToken = sessionStorage.getItem('supabase_admin_token');
             if (existingToken) initializeApp(existingToken);
             
-            // Mobile Menu Logic
             const sidebar = document.getElementById('sidebar');
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const overlay = document.getElementById('mobile-menu-overlay');
             const toggleMenu = () => { sidebar.classList.toggle('-translate-x-full'); overlay.classList.toggle('hidden'); };
             if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMenu);
             if (overlay) overlay.addEventListener('click', toggleMenu);
-            sidebarNav.addEventListener('click', (e) => { if (e.target.closest('.tab-button') && window.innerWidth < 768) toggleMenu(); });
         });
     </script>
 </body>
