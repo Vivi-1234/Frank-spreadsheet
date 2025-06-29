@@ -36,6 +36,19 @@
         #sticky-step-nav { position: sticky; top: var(--header-height); z-index: 20; background-color: rgba(13, 13, 13, 0.8); backdrop-filter: blur(10px); }
         .step-nav-link { color: #9CA3AF; transition: color 0.2s ease-in-out; }
         .step-nav-link.active, .step-nav-link:hover { color: #FFFFFF; }
+        #discount-code-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 9999px;
+            padding: 0.5rem 1.25rem;
+            display: inline-flex;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        #discount-code-box:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -64,21 +77,17 @@
         <section class="text-center pt-0 pb-12 md:pb-16 fade-in-up">
             <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">How to buy</h1>
             <p class="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-400">Follow these simple steps to get the best products sourced and shipped directly to you.</p>
+            
+            <div id="discount-section" class="mt-8">
+                <div id="discount-code-box">
+                    <i data-lucide="gift" class="h-4 w-4 mr-2 text-gray-400"></i>
+                    <span id="discount-text" class="text-sm text-gray-300">15% OFF Shipping Code: <span class="font-bold text-white">Frank</span></span>
+                </div>
+            </div>
+
             <div id="hero-buttons" class="mt-8 flex items-center justify-center gap-4 hidden">
                 <a id="signup-btn" href="#" target="_blank" class="btn btn-primary">Sign Up Here</a>
                 <a href="#steps-section" class="btn btn-secondary">View Steps</a>
-            </div>
-        </section>
-
-        <section id="discount-section" class="my-12 fade-in-up">
-            <div id="discount-code-box" class="max-w-4xl mx-auto p-6 border-2 border-dashed border-gray-700 rounded-lg text-center cursor-pointer hover:border-gray-400 transition-all duration-300 bg-gray-900/50">
-                <div class="flex items-center justify-center gap-4">
-                    <i data-lucide="copy" class="h-6 w-6 text-gray-400"></i>
-                    <div>
-                        <p class="font-bold text-lg text-white">15% OFF Shipping Discount Code: Frank</p>
-                        <p class="text-sm text-gray-500">Click to copy the code</p>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -119,6 +128,7 @@
         }
 
         function slugify(text) {
+            if (!text) return '';
             return text.toString().toLowerCase()
                 .replace(/\s+/g, '-')           // Replace spaces with -
                 .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
@@ -184,29 +194,30 @@
                             .map(subStep => {
                                 const hasImage = !!subStep.image_url;
                                 return `
-                                    <div class="grid grid-cols-1 ${hasImage ? 'lg:grid-cols-2' : ''} gap-8 lg:gap-12 items-center fade-in-up not-first:mt-8">
+                                    <div class="grid grid-cols-1 ${hasImage ? 'lg:grid-cols-2' : ''} gap-8 lg:gap-12 items-center">
                                         <div>
                                             <h4 class="text-xl font-bold text-white">${subStep.title || ''}</h4>
                                             <p class="mt-2 text-gray-400">${subStep.description || ''}</p>
                                         </div>
                                         ${hasImage ? `
-                                        <div class="flex items-center justify-center p-4 mt-4 lg:mt-0">
+                                        <div class="flex items-center justify-center mt-4 lg:mt-0">
                                             <img src="${subStep.image_url}" alt="${subStep.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800">
                                         </div>` : ''}
                                     </div>
                                 `;
-                            }).join('');
+                            }).join('<div class="my-6 border-b border-dashed border-gray-800"></div>');
 
                         return `
-                            <div class="py-12 md:py-16" id="${sectionId}">
+                            <div class="py-12 md:py-16 fade-in-up" id="${sectionId}">
                                 <div class="max-w-4xl mx-auto">
-                                    <div class="flex items-center gap-4 md:gap-6 mb-8 fade-in-up">
+                                    <div class="flex items-center gap-4 md:gap-6 mb-8">
                                         <div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${index + 1}</div>
                                         <h2 class="section-title text-3xl md:text-4xl font-bold tracking-tight text-white">${mainStep.title}</h2>
                                     </div>
-                                    <div class="space-y-8 pl-4 md:pl-8 border-l-2 border-dashed border-gray-800 ml-[1.4rem]">
+                                    ${ childStepsHTML ? `
+                                    <div class="space-y-8 pl-4 md:pl-8 border-l-2 border-gray-800 ml-[1.4rem]">
                                         ${childStepsHTML}
-                                    </div>
+                                    </div>` : ''}
                                 </div>
                             </div>
                         `;
@@ -214,7 +225,7 @@
                     
                     if (mainSteps.length > 1) {
                         stickyNav.classList.remove('hidden');
-                        stepNavContainer.innerHTML = mainSteps.map(s => `<a href="#${slugify(s.title)}" class="step-nav-link font-medium text-sm md:text-base">${s.title}</a>`).join('');
+                        stepNavContainer.innerHTML = mainSteps.map((s, index) => `<a href="#${slugify(s.title)}" class="step-nav-link font-medium text-sm md:text-base">${index + 1}. ${s.title}</a>`).join('');
                     }
 
                 } else {
@@ -262,17 +273,19 @@
             // Discount Code Copy
             const discountBox = document.getElementById('discount-code-box');
             if (discountBox) {
+                const icon = discountBox.querySelector('i');
+                const textSpan = discountBox.querySelector('#discount-text');
+                const originalText = textSpan.innerHTML;
+
                 discountBox.addEventListener('click', () => {
                     navigator.clipboard.writeText('Frank').then(() => {
-                        const originalContent = discountBox.innerHTML;
-                        discountBox.innerHTML = `
-                            <div class="flex items-center justify-center gap-4 text-green-400">
-                                <i data-lucide="check-circle" class="h-6 w-6"></i>
-                                <p class="font-bold text-lg">Copied!</p>
-                            </div>`;
+                        textSpan.textContent = 'Copied!';
+                        icon.outerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i>`;
                         lucide.createIcons();
+                        
                         setTimeout(() => {
-                            discountBox.innerHTML = originalContent;
+                            textSpan.innerHTML = originalText;
+                            icon.outerHTML = `<i data-lucide="gift" class="h-4 w-4 mr-2 text-gray-400"></i>`;
                             lucide.createIcons();
                         }, 2000);
                     }).catch(err => {
@@ -288,17 +301,34 @@
 
             const observer = new IntersectionObserver(entries => {
                 let currentSectionId = '';
-                entries.forEach(entry => {
+                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         currentSectionId = entry.target.id;
                     }
                 });
-                
-                navLinks.forEach(link => {
-                    link.classList.toggle('active', link.getAttribute('href').slice(1) === currentSectionId);
-                });
 
-            }, { rootMargin: `-${document.getElementById('sticky-step-nav').offsetHeight}px 0px -75% 0px` });
+                let activeLinkFound = false;
+                navLinks.forEach(link => {
+                    const isActive = link.getAttribute('href').slice(1) === currentSectionId;
+                    link.classList.toggle('active', isActive);
+                    if(isActive) activeLinkFound = true;
+                });
+                
+                // Fallback for when scrolling between sections
+                if (!activeLinkFound) {
+                    // Find the last section that is above the viewport
+                    let lastVisibleSectionId = null;
+                    for (const section of sections) {
+                        if (section.getBoundingClientRect().top < (document.getElementById('sticky-step-nav').offsetHeight + 20)) {
+                           lastVisibleSectionId = section.id;
+                        }
+                    }
+                     navLinks.forEach(link => {
+                        link.classList.toggle('active', link.getAttribute('href').slice(1) === lastVisibleSectionId);
+                    });
+                }
+
+            }, { rootMargin: `-${document.getElementById('sticky-step-nav').offsetHeight + 10}px 0px -50% 0px` });
 
             sections.forEach(section => observer.observe(section));
         }
