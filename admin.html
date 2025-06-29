@@ -102,7 +102,6 @@
         </div>
     </div>
 
-    <!-- Modals and Overlays -->
     <div id="edit-product-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="panel w-full max-w-2xl"><div class="p-6 border-b border-border-color flex justify-between items-center"><h3 class="text-lg font-semibold">Edit Product</h3><button id="close-modal-btn" class="p-1 rounded-full hover:bg-gray-700"><i data-lucide="x" class="h-5 w-5 text-gray-400"></i></button></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><input type="hidden" id="edit-product-id"><div id="edit-image-paste-box" class="relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="edit-image-placeholder">Click, drag, or paste an image</p><img id="edit-preview-image" src="" class="hidden max-h-32 mx-auto rounded mt-2"><button id="delete-image-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="edit-image-input" class="hidden" accept="image/*"><div><label class="label">Product Name</label><input type="text" id="edit-product-name" class="input mt-1"></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="label">Original Price (CNY)</label><input type="number" id="edit-product-price" class="input mt-1"></div><div><label class="label">Target URL</label><input type="text" id="edit-product-target-url" class="input mt-1" placeholder="https://store.com/product/..."></div></div><div id="edit-tags-container" class="space-y-2"><label class="label">Tags (e.g., Sales, Top Selling)</label><div id="edit-tags-list" class="flex flex-wrap gap-2"></div></div><div class="p-4 rounded-lg bg-black border border-border-color"><p class="font-semibold mb-2 text-gray-300">Discount Settings</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center"><div class="sm:col-span-1"><label class="label">Discount Factor (e.g., 0.7)</label><input type="number" id="edit-product-discount-factor" class="input mt-1" step="0.01" min="0" max="1"></div><div class="sm:col-span-2"><label class="label">Discount Expiry Date</label><input type="datetime-local" id="edit-product-discount-expires" class="input mt-1 flatpickr-input"></div></div><div class="flex justify-between items-center mt-2"><div class="flex items-center"><label class="toggle-switch"><input type="checkbox" id="edit-product-discount-active"><span class="toggle-slider"></span></label><label for="edit-product-discount-active" class="ml-2 text-sm">Enable Discount</label></div><div class="text-right"><p class="text-sm">Discount Price: <span id="calculated-discount-price" class="font-bold text-accent-color"></span></p></div></div></div></div><div class="p-4 bg-black/50 rounded-b-lg text-right border-t border-border-color"><button id="save-product-changes-btn" class="btn btn-primary">Save Changes</button></div></div>
     </div>
@@ -737,14 +736,23 @@
 
         async function saveProductOrder(evt) {
             const reorderedIds = Array.from(evt.to.children).map(item => parseInt(item.dataset.id));
-            const updates = reorderedIds.map((id, index) => ({ id, display_order: index }));
+            const updatePromises = reorderedIds.map((id, index) =>
+                db.from('products').update({ display_order: index }).eq('id', id)
+            );
+
             showLoading(true);
-            try { 
-                const { error } = await db.from('products').upsert(updates);
-                if (error) throw error;
-            } 
-            catch (error) { showAlert('Reorder failed: ' + error.message, true); await loadProducts(); } 
-            finally { showLoading(false); }
+            try {
+                const results = await Promise.all(updatePromises);
+                const firstError = results.find(res => res.error);
+                if (firstError) throw firstError.error;
+            }
+            catch (error) {
+                showAlert('Reorder failed: ' + error.message, true);
+                await loadProducts(); // Reload to show the correct order on failure
+            }
+            finally {
+                showLoading(false);
+            }
         }
 
         async function updateProductField(productId, field, value) {
@@ -781,6 +789,7 @@
             button.disabled = true;
 
             try {
+                // 1. Update general settings
                 if (howToBuySettingsCache && howToBuySettingsCache.id) {
                     const settingsUpdate = {
                         video_url: document.getElementById('how-to-buy-video-url').value.trim() || null,
@@ -791,6 +800,7 @@
                     if (settingsError) throw settingsError;
                 }
 
+                // 2. Prepare step payloads
                 const stepRows = document.querySelectorAll('.how-to-buy-step-row');
                 const stepPayloads = [];
                 for (const [index, row] of Array.from(stepRows).entries()) {
@@ -815,6 +825,7 @@
                     stepPayloads.push(record);
                 }
 
+                // 3. Separate records for insert, update, delete
                 const recordsToUpdate = stepPayloads.filter(s => s.id);
                 const recordsToInsert = stepPayloads.filter(s => !s.id);
                 
@@ -823,18 +834,26 @@
                 const currentStepIds = recordsToUpdate.map(s => s.id);
                 const idsToDelete = existingStepIds.filter(id => !currentStepIds.includes(id));
 
+                // 4. Perform database operations
                 if (idsToDelete.length > 0) {
                     await db.from('how_to_buy_steps').delete().in('id', idsToDelete);
                 }
                 
                 if (recordsToUpdate.length > 0) {
-                    const { error: updateError } = await db.from('how_to_buy_steps').upsert(recordsToUpdate);
-                    if (updateError) throw updateError;
+                    // *** FIXED CODE BLOCK ***
+                    // Use Promise.all to run updates concurrently, preventing the 'GENERATED ALWAYS' error
+                    const updatePromises = recordsToUpdate.map(record => {
+                        const { id, ...updateData } = record; // Separate id from the rest of the data
+                        return db.from('how_to_buy_steps').update(updateData).eq('id', id);
+                    });
+                    const results = await Promise.all(updatePromises);
+                    const firstError = results.find(res => res.error);
+                    if (firstError) throw firstError.error;
                 }
                 
                 if (recordsToInsert.length > 0) {
-                     const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert.map(({ id, ...rest }) => rest));
-                     if (insertError) throw insertError;
+                    const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert.map(({ id, ...rest }) => rest));
+                    if (insertError) throw insertError;
                 }
 
                 showAlert('Successfully saved "How-to-buy" page!');
@@ -944,6 +963,15 @@
             document.getElementById('bulk-delete-btn').onclick = bulkDelete;
             document.getElementById('bulk-toggle-discount-btn').onclick = bulkToggleDiscount;
             document.getElementById('product-list').onclick = handleProductListClicks;
+            document.getElementById('product-list').addEventListener('change', e => {
+                const target = e.target;
+                if (target.classList.contains('product-checkbox')) {
+                    updateBulkActionBar();
+                } else if (target.classList.contains('discount-toggle')) {
+                    const id = target.closest('[data-id]')?.dataset.id;
+                    toggleDiscount(id, target.checked);
+                }
+            });
         }
 
         function setupSettingsEventListeners() {
@@ -1053,9 +1081,7 @@
                 return;
             }
             
-            if (target.classList.contains('product-checkbox')) updateBulkActionBar();
-            else if (target.classList.contains('discount-toggle')) toggleDiscount(id, target.checked);
-            else if (target.closest('.edit-product-btn')) openEditModal(id);
+            if (target.closest('.edit-product-btn')) openEditModal(id);
         }
         
         function updateBulkActionBar() {
