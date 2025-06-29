@@ -836,11 +836,12 @@
                     if (updateError) throw updateError;
                 }
                 
-                // 5. Insert new records
+                // 5. Insert new records (FIXED: remove temporary ID before insert)
                 if (recordsToInsert.length > 0) {
-                     const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert);
+                     const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert.map(({ id, ...rest }) => rest));
                      if (insertError) throw insertError;
                 }
+
 
                 showAlert('Successfully saved "How-to-buy" page!');
                 newHowToBuyStepFiles.clear();
@@ -1007,6 +1008,7 @@
             });
         }
         
+        // This function was missing. I've re-added it.
         function setupSocialRowListeners(row) {
             const logoBox = row.querySelector('.social-logo-box');
             const logoInput = row.querySelector('.social-logo-input');
