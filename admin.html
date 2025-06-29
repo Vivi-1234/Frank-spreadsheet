@@ -117,7 +117,8 @@
 
         // --- Global State ---
         let productsCache = [], tagsCache = [], navCache = [], socialLinksCache = [], currentAnalyticsData = [];
-        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null, sortableHowToBuyInstance = null;
+        let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null;
+        let mainStepsSortable = null;
         let newProductFiles = new Map(), newSocialFiles = new Map(), newHowToBuyStepFiles = new Map();
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
@@ -140,7 +141,7 @@
             settings: `<h2 class="text-2xl font-bold text-text-primary mb-6">Site Settings</h2><div class="panel p-6 space-y-6 max-w-2xl"><div><label for="siteTitle" class="label">Main Title</label><input type="text" id="siteTitle" class="input mt-1"></div><div><label for="siteSubtitle" class="label">Subtitle</label><textarea id="siteSubtitle" class="input mt-1" rows="2"></textarea></div><div><label class="label">Hero Background Image</label><div id="hero-bg-upload-box" class="mt-1 relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-400 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="hero-bg-placeholder">Click to upload or drag an image here</p><img id="hero-bg-preview" src="" class="hidden max-h-32 mx-auto rounded"><button id="delete-hero-bg-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="hero-bg-input" class="hidden" accept="image/*"></div><div class="text-right pt-4 border-t border-border-color"><button id="save-settings-btn" class="btn btn-primary">Save Settings</button></div></div>`,
             social: `<h2 class="text-2xl font-bold text-text-primary mb-6">Social Media Links</h2><div class="panel p-6 max-w-2xl"><div id="social-links-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-social-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Social Link</button></div><div class="text-right mt-4"><button id="save-social-btn" class="btn btn-primary">Save Social Links</button></div></div>`,
             flash_sale: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Flash Sale Management</h2><button id="save-flash-sale-btn" class="btn btn-primary"><i data-lucide="save" class="mr-2 h-4 w-4"></i>Save Changes</button></div><div class="panel p-6 mb-8"><h3 class="text-lg font-semibold mb-4 text-text-primary">Activity Settings</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center"><div><label for="flash-sale-end-time" class="label">Countdown End Time</label><input type="datetime-local" id="flash-sale-end-time" class="input mt-1 flatpickr-input"></div><div class="flex items-center"><label class="toggle-switch"><input type="checkbox" id="flash-sale-active-toggle"><span class="toggle-slider"></span></label><label for="flash-sale-active-toggle" class="ml-3">Enable Flash Sale</label></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Available Products</h3><div id="all-products-list" class="space-y-2 h-96 overflow-y-auto border border-border-color p-2 rounded-lg bg-black/50"></div></div><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Flash Sale Products (Drag to sort)</h3><div id="flash-sale-products-list" class="space-y-2 h-96 overflow-y-auto border border-border-color p-2 rounded-lg bg-black/50"></div></div></div>`,
-            how_to_buy: `<div class="space-y-8"><div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-text-primary">"How-to-buy" Page Management</h2><button id="save-how-to-buy-btn" class="btn btn-primary"><i data-lucide="save" class="mr-2 h-4 w-4"></i>Save All Changes</button></div><div class="panel p-6 space-y-6"><h3 class="text-lg font-semibold text-text-primary">General Settings</h3><div><label for="how-to-buy-video-url" class="label">Tutorial Video URL</label><input type="text" id="how-to-buy-video-url" class="input mt-1" placeholder="Enter YouTube 'embed' link"></div><div><label for="how-to-buy-signup-url" class="label">Sign Up Button Link</label><input type="text" id="how-to-buy-signup-url" class="input mt-1" placeholder="Enter the link for the sign up button"></div></div><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Tutorial Steps</h3><p class="text-sm text-text-secondary mb-4">Add, remove, or reorder the steps for the tutorial. Drag to reorder.</p><div id="how-to-buy-steps-container" class="space-y-4"></div><div class="mt-6"><button id="add-how-to-buy-step-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add New Step</button></div></div></div>`
+            how_to_buy: `<div class="space-y-8"><div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-text-primary">"How-to-buy" Page Management</h2><button id="save-how-to-buy-btn" class="btn btn-primary"><i data-lucide="save" class="mr-2 h-4 w-4"></i>Save All Changes</button></div><div class="panel p-6 space-y-6"><h3 class="text-lg font-semibold text-text-primary">General Settings</h3><div><label for="how-to-buy-video-url" class="label">Tutorial Video URL</label><input type="text" id="how-to-buy-video-url" class="input mt-1" placeholder="Enter YouTube 'embed' link"></div><div><label for="how-to-buy-signup-url" class="label">Sign Up Button Link</label><input type="text" id="how-to-buy-signup-url" class="input mt-1" placeholder="Enter the link for the sign up button"></div></div><div class="panel p-6"><h3 class="text-lg font-semibold mb-4 text-text-primary">Tutorial Steps</h3><p class="text-sm text-text-secondary mb-4">Add, remove, or reorder the main steps. Sub-steps can be managed within each main step.</p><div id="how-to-buy-steps-container" class="space-y-4"></div><div class="mt-6"><button id="add-how-to-buy-main-step-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add New Main Step</button></div></div></div>`
         };
 
         // --- Core Logic ---
@@ -209,7 +210,7 @@
 
         function initHowToBuyPanel() {
             document.getElementById('save-how-to-buy-btn').addEventListener('click', saveHowToBuyData);
-            document.getElementById('add-how-to-buy-step-btn').addEventListener('click', () => renderHowToBuyStep());
+            document.getElementById('add-how-to-buy-main-step-btn').addEventListener('click', () => renderMainStepCard());
             loadHowToBuyData();
         }
 
@@ -389,36 +390,47 @@
 
         async function loadHowToBuyData() {
             showLoading(true);
-            const [settingsRes, stepsRes] = await Promise.all([
-                db.from('how_to_buy_settings').select('*').limit(1).single(),
-                db.from('how_to_buy_steps').select('*').order('display_order')
-            ]);
+            const { data: settingsData, error: settingsError } = await db.from('how_to_buy_settings').select('*').limit(1).single();
+            const { data: stepsData, error: stepsError } = await db.from('how_to_buy_steps').select('*').order('display_order');
             showLoading(false);
 
-            if (settingsRes.error || stepsRes.error) {
+            if (settingsError || stepsError) {
                 showAlert('Failed to load "How-to-buy" data.', true);
-                console.error("Error loading how-to-buy data:", settingsRes.error || stepsRes.error);
                 return;
             }
-
-            const settings = settingsRes.data;
-            howToBuySettingsCache = settings; 
-            if (settings) {
-                document.getElementById('how-to-buy-video-url').value = settings.video_url || '';
-                document.getElementById('how-to-buy-signup-url').value = settings.signup_url || '';
+            
+            howToBuySettingsCache = settingsData;
+            if (settingsData) {
+                document.getElementById('how-to-buy-video-url').value = settingsData.video_url || '';
+                document.getElementById('how-to-buy-signup-url').value = settingsData.signup_url || '';
             }
 
             const stepsContainer = document.getElementById('how-to-buy-steps-container');
             stepsContainer.innerHTML = '';
-            const steps = stepsRes.data || [];
-            if (steps.length > 0) {
-                steps.forEach(step => renderHowToBuyStep(step));
-            } else {
-                renderHowToBuyStep();
+
+            const allSteps = stepsData || [];
+            const mainSteps = allSteps.filter(s => !s.section_title);
+            const subStepsByParent = allSteps.reduce((acc, step) => {
+                if (step.section_title) {
+                    if (!acc[step.section_title]) acc[step.section_title] = [];
+                    acc[step.section_title].push(step);
+                }
+                return acc;
+            }, {});
+
+            if (mainSteps.length > 0) {
+                mainSteps.forEach(mainStep => {
+                    const subSteps = subStepsByParent[mainStep.title] || [];
+                    renderMainStepCard(mainStep, subSteps);
+                });
             }
 
-            if (sortableHowToBuyInstance) sortableHowToBuyInstance.destroy();
-            sortableHowToBuyInstance = new Sortable(stepsContainer, { animation: 150, ghostClass: 'sortable-ghost', handle: '.drag-handle' });
+            if (mainStepsSortable) mainStepsSortable.destroy();
+            mainStepsSortable = new Sortable(stepsContainer, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                handle: '.main-step-drag-handle',
+            });
         }
 
         // --- HTML Element Renderers ---
@@ -509,36 +521,72 @@
             container.appendChild(div);
         }
 
-        function renderHowToBuyStep(step = {}) {
+        function renderMainStepCard(mainStep = {}, subSteps = []) {
             const container = document.getElementById('how-to-buy-steps-container');
-            if (!container) return;
-            const stepId = step.id || `new_${Date.now()}`;
+            const mainStepId = mainStep.id || `new_main_${Date.now()}`;
             const div = document.createElement('div');
-            div.className = 'how-to-buy-step-row p-4 border border-border-color rounded-lg bg-black/30 space-y-4';
-            div.dataset.id = stepId;
+            div.className = 'main-step-card p-4 border border-border-color rounded-lg bg-black/30 space-y-4';
+            div.dataset.id = mainStepId;
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2 flex-grow">
+                        <i data-lucide="grip-vertical" class="main-step-drag-handle cursor-move text-gray-500"></i>
+                        <input type="text" class="input main-step-title flex-grow" value="${mainStep.title || ''}" placeholder="Main Step Title (e.g., Requirements)">
+                    </div>
+                    <button class="delete-main-step-btn btn btn-danger btn-xs ml-4"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                </div>
+                <div class="pl-8">
+                    <h4 class="text-sm font-semibold text-text-secondary mb-2">Sub-steps:</h4>
+                    <div class="sub-steps-container space-y-3"></div>
+                    <button class="add-sub-step-btn btn btn-secondary btn-xs mt-3"><i data-lucide="plus" class="mr-2 h-3 w-3"></i>Add Sub-step</button>
+                </div>
+            `;
+            container.appendChild(div);
+
+            const subStepsContainer = div.querySelector('.sub-steps-container');
+            if (subSteps.length > 0) {
+                subSteps.forEach(subStep => renderSubStepRow(subStep, subStepsContainer));
+            }
+
+            new Sortable(subStepsContainer, { animation: 150, ghostClass: 'sortable-ghost', handle: '.sub-step-drag-handle' });
+
+            div.querySelector('.delete-main-step-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this entire main step and all its sub-steps?')) {
+                    div.remove();
+                }
+            });
+
+            div.querySelector('.add-sub-step-btn').addEventListener('click', () => {
+                renderSubStepRow({}, subStepsContainer);
+            });
+            
+            lucide.createIcons();
+        }
+
+        function renderSubStepRow(subStep = {}, container) {
+            const subStepId = subStep.id || `new_sub_${Date.now()}`;
+            const div = document.createElement('div');
+            div.className = 'sub-step-row p-4 border border-gray-800 rounded-lg bg-bg-panel space-y-4';
+            div.dataset.id = subStepId;
             div.innerHTML = `
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2">
-                        <i data-lucide="grip-vertical" class="drag-handle cursor-move text-gray-500"></i>
-                        <h4 class="font-semibold text-text-secondary">Step #${container.children.length + 1}</h4>
+                        <i data-lucide="grip-vertical" class="sub-step-drag-handle cursor-move text-gray-600"></i>
+                        <h5 class="font-semibold text-text-secondary">Sub-step</h5>
                     </div>
-                    <button class="delete-step-btn btn btn-danger btn-xs"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                </div>
-                <div>
-                    <label class="label">Section Title (Optional - for grouping steps)</label>
-                    <input type="text" class="input mt-1 step-section-title" value="${step.section_title || ''}" placeholder="e.g., Requirements">
+                    <button class="delete-sub-step-btn btn btn-danger btn-xs"><i data-lucide="x" class="h-4 w-4"></i></button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-4">
-                        <div><label class="label">Step Title</label><input type="text" class="input mt-1 step-title" value="${step.title || ''}"></div>
-                        <div><label class="label">Description</label><textarea class="input mt-1 step-description" rows="4">${step.description || ''}</textarea></div>
+                        <div><label class="label">Sub-step Title</label><input type="text" class="input mt-1 sub-step-title" value="${subStep.title || ''}"></div>
+                        <div><label class="label">Description</label><textarea class="input mt-1 sub-step-description" rows="4">${subStep.description || ''}</textarea></div>
                     </div>
                     <div class="space-y-1">
                         <label class="label">Image</label>
                         <div class="step-image-upload-box relative p-4 rounded-lg text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color h-full flex items-center justify-center">
-                            <p class="step-image-placeholder ${step.image_url ? 'hidden' : ''}">Click to upload</p>
-                            <img src="${step.image_url || ''}" class="step-image-preview ${step.image_url ? '' : 'hidden'} max-h-32 mx-auto rounded">
-                            <button class="delete-step-image-btn ${step.image_url ? '' : 'hidden'} absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
+                            <p class="step-image-placeholder ${subStep.image_url ? 'hidden' : ''}">Click to upload</p>
+                            <img src="${subStep.image_url || ''}" class="step-image-preview ${subStep.image_url ? '' : 'hidden'} max-h-32 mx-auto rounded">
+                            <button class="delete-step-image-btn ${subStep.image_url ? '' : 'hidden'} absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
                                 <i data-lucide="trash-2" class="h-4 w-4"></i>
                             </button>
                         </div>
@@ -547,7 +595,8 @@
                 </div>
             `;
             container.appendChild(div);
-            setupStepRowListeners(div);
+            setupStepRowListeners(div); // Re-use the same listeners for image handling
+            div.querySelector('.delete-sub-step-btn').addEventListener('click', () => div.remove());
             lucide.createIcons();
         }
 
@@ -806,72 +855,72 @@
                     const { error: settingsError } = await db.from('how_to_buy_settings').update(settingsUpdate).eq('id', howToBuySettingsCache.id);
                     if (settingsError) throw settingsError;
                 }
+                
+                let displayOrderCounter = 0;
+                const allPayloads = [];
+                const mainStepCards = document.querySelectorAll('.main-step-card');
 
-                // 2. Prepare step payloads
-                const stepRows = document.querySelectorAll('.how-to-buy-step-row');
-                const stepPayloads = [];
-                for (const [index, row] of Array.from(stepRows).entries()) {
-                    const stepId = row.dataset.id;
-                    const imageFile = newHowToBuyStepFiles.get(stepId);
-                    let imageUrl = null;
-                    
-                    if (imageFile) {
-                        imageUrl = await uploadImage(imageFile, 'how-to-buy-steps');
-                    } else {
-                        const placeholder = row.querySelector('.step-image-placeholder');
-                        // Only use existing URL if placeholder is hidden (i.e., image was not deleted)
-                        if (placeholder.classList.contains('hidden')) {
-                            const previewSrc = row.querySelector('.step-image-preview').src;
-                            // Ensure it's a real URL, not the current page's URL
-                            if (previewSrc && !previewSrc.endsWith('/admin.html')  && !previewSrc.startsWith('blob:')) {
-                                imageUrl = previewSrc;
+                for (const mainCard of mainStepCards) {
+                    const mainStepTitle = mainCard.querySelector('.main-step-title').value.trim();
+                    if (!mainStepTitle) continue;
+
+                    // Main step payload
+                    const mainStepPayload = {
+                        id: mainCard.dataset.id.startsWith('new_') ? undefined : parseInt(mainCard.dataset.id),
+                        title: mainStepTitle,
+                        section_title: null,
+                        description: null,
+                        image_url: null,
+                        display_order: displayOrderCounter++
+                    };
+                    allPayloads.push(mainStepPayload);
+
+                    // Sub-steps payloads
+                    const subStepRows = mainCard.querySelectorAll('.sub-step-row');
+                    for (const subRow of subStepRows) {
+                        const imageFile = newHowToBuyStepFiles.get(subRow.dataset.id);
+                        let imageUrl = null;
+
+                        if (imageFile) {
+                            imageUrl = await uploadImage(imageFile, 'how-to-buy-steps');
+                        } else {
+                            const placeholder = subRow.querySelector('.step-image-placeholder');
+                            if (placeholder.classList.contains('hidden')) {
+                                const previewSrc = subRow.querySelector('.step-image-preview').src;
+                                if (previewSrc && !previewSrc.endsWith('/admin.html') && !previewSrc.startsWith('blob:')) {
+                                    imageUrl = previewSrc;
+                                }
                             }
                         }
-                    }
-                    
-                    const record = {
-                        display_order: index,
-                        section_title: row.querySelector('.step-section-title').value.trim() || null,
-                        title: row.querySelector('.step-title').value.trim(),
-                        description: row.querySelector('.step-description').value.trim(),
-                        image_url: imageUrl
-                    };
 
-                    if (!stepId.startsWith('new_')) {
-                        record.id = parseInt(stepId);
+                        const subStepPayload = {
+                            id: subRow.dataset.id.startsWith('new_') ? undefined : parseInt(subRow.dataset.id),
+                            title: subRow.querySelector('.sub-step-title').value.trim(),
+                            description: subRow.querySelector('.sub-step-description').value.trim(),
+                            image_url: imageUrl,
+                            section_title: mainStepTitle,
+                            display_order: displayOrderCounter++
+                        };
+                        allPayloads.push(subStepPayload);
                     }
-                    stepPayloads.push(record);
                 }
 
-                // 3. Separate records for insert, update, delete
-                const recordsToUpdate = stepPayloads.filter(s => s.id);
-                const recordsToInsert = stepPayloads.filter(s => !s.id);
-                
+                // Delete steps that are no longer in the UI
                 const { data: existingSteps } = await db.from('how_to_buy_steps').select('id');
-                const existingStepIds = (existingSteps || []).map(s => s.id);
-                const currentStepIds = recordsToUpdate.map(s => s.id);
-                const idsToDelete = existingStepIds.filter(id => !currentStepIds.includes(id));
+                const existingIds = (existingSteps || []).map(s => s.id);
+                const currentIds = allPayloads.filter(p => p.id).map(p => p.id);
+                const idsToDelete = existingIds.filter(id => !currentIds.includes(id));
 
-                // 4. Perform database operations
                 if (idsToDelete.length > 0) {
                     await db.from('how_to_buy_steps').delete().in('id', idsToDelete);
                 }
-                
-                if (recordsToUpdate.length > 0) {
-                    const updatePromises = recordsToUpdate.map(record => {
-                        const { id, ...updateData } = record;
-                        return db.from('how_to_buy_steps').update(updateData).eq('id', id);
-                    });
-                    const results = await Promise.all(updatePromises);
-                    const firstError = results.find(res => res.error);
-                    if (firstError) throw firstError.error;
-                }
-                
-                if (recordsToInsert.length > 0) {
-                    const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert.map(({ id, ...rest }) => rest));
-                    if (insertError) throw insertError;
-                }
 
+                // Upsert all current steps
+                if (allPayloads.length > 0) {
+                    const { error } = await db.from('how_to_buy_steps').upsert(allPayloads.map(p => p.id ? p : { ...p, id: undefined }));
+                    if (error) throw error;
+                }
+                
                 showAlert('Successfully saved "How-to-buy" page!');
                 newHowToBuyStepFiles.clear();
                 await loadHowToBuyData();
@@ -1027,9 +1076,8 @@
         }
         
         function setupStepRowListeners(row) {
-            row.querySelector('.delete-step-btn').addEventListener('click', () => {
-                if (confirm('Are you sure you want to delete this step?')) {
-                    newHowToBuyStepFiles.delete(row.dataset.id);
+            row.querySelector('.delete-sub-step-btn').addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this sub-step?')) {
                     row.remove();
                 }
             });
@@ -1133,7 +1181,8 @@
             if (selectedIds.length === 0) return showAlert('Please select products to delete.', true);
             if (confirm(`Are you sure you want to remove ${selectedIds.length} selected products?`)) {
                 showLoading(true);
-                await db.from('products').update({ is_active: false }).in('id', selectedIds);
+                const { error } = await db.from('products').update({ is_active: false }).in('id', selectedIds);
+                if (error) { showAlert('Delete failed: ' + error.message, true); }
                 await loadProducts();
                 showLoading(false);
             }
