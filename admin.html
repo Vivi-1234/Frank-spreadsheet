@@ -228,7 +228,7 @@
         let db; 
 
         // --- Global State ---
-        let productsCache = [], tagsCache = [], navCache = [], currentAnalyticsData = [];
+        let productsCache = [], tagsCache = [], navCache = [], socialLinksCache = [];
         let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null;
         let newProductFiles = new Map(), newSocialFiles = new Map();
         let currentEditFile = null, currentEditImageUrl = '';
@@ -276,43 +276,43 @@
             setTimeout(() => { alertBox.remove(); }, 3000);
         }
         
-        // --- Panel Initializers ---
+        // --- Panel Initializers (Set up main event listeners once per panel) ---
         function initDashboard() {
+            document.getElementById('export-excel-btn').onclick = exportAnalyticsToExcel;
             const datePicker = document.getElementById('date-range-picker');
             flatpickr(datePicker, {
                 mode: "range", dateFormat: "Y-m-d",
                 defaultDate: [new Date(new Date().setDate(new Date().getDate() - 29)), new Date()],
                 onChange: (selectedDates) => { if (selectedDates.length === 2) loadDashboardData(selectedDates[0], selectedDates[1]); },
             });
-            document.getElementById('export-excel-btn').addEventListener('click', exportAnalyticsToExcel);
             loadDashboardData(new Date(new Date().setDate(new Date().getDate() - 29)), new Date());
         }
 
         function initSettingsPanel() {
-            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            document.getElementById('save-settings-btn').onclick = saveSettings;
             loadSettings();
         }
 
         function initNavigationPanel() {
-            document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
-            document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
+            document.getElementById('add-nav-btn').onclick = () => renderNavItem({}, true);
+            document.getElementById('save-nav-btn').onclick = saveNavigation;
             loadNavigation();
         }
 
         function initTagsPanel() {
-            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
-            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
+            document.getElementById('add-tag-btn').onclick = addNewTag;
+            document.getElementById('save-tags-btn').onclick = saveTags;
             loadTags();
         }
 
         function initSocialLinksPanel() {
-            document.getElementById('add-social-btn').addEventListener('click', () => addSocialRow());
-            document.getElementById('save-social-btn').addEventListener('click', saveSocialLinks);
+            document.getElementById('add-social-btn').onclick = () => addSocialRow();
+            document.getElementById('save-social-btn').onclick = saveSocialLinks;
             loadSocialLinks();
         }
 
         function initFlashSalePanel() {
-            document.getElementById('save-flash-sale-btn').addEventListener('click', saveFlashSaleData);
+            document.getElementById('save-flash-sale-btn').onclick = saveFlashSaleData;
             loadFlashSaleData();
         }
 
@@ -346,12 +346,13 @@
         async function loadNavigation() {
             const navList = document.getElementById('navigation-list');
             if (!navList) return;
-            const { data } = await db.from('navigation').select('*').order('display_order');
+            const { data, error } = await db.from('navigation').select('*').order('display_order');
+            if (error) return showAlert(error.message, true);
+            
             navList.innerHTML = '';
-            if (data) {
-                navCache = data;
-                data.filter(item => item.link_text.toLowerCase() !== 'home').forEach(item => renderNavItem(item));
-            }
+            navCache = data || [];
+            navCache.filter(item => item.link_text.toLowerCase() !== 'home').forEach(item => renderNavItem(item));
+            
             if (sortableNavInstance) sortableNavInstance.destroy();
             sortableNavInstance = new Sortable(navList, { 
                 animation: 150, 
@@ -364,12 +365,13 @@
         async function loadTags() {
             const tagList = document.getElementById('tag-list');
             if (!tagList) return;
-            const { data } = await db.from('product_tags').select('*').order('display_order');
+            const { data, error } = await db.from('product_tags').select('*').order('display_order');
+            if (error) return showAlert(error.message, true);
+
             tagList.innerHTML = '';
-            if (data) {
-                tagsCache = data;
-                data.forEach(tag => renderTagItem(tag));
-            }
+            tagsCache = data || [];
+            tagsCache.forEach(tag => renderTagItem(tag));
+
             lucide.createIcons();
             if (sortableTagsInstance) sortableTagsInstance.destroy();
             sortableTagsInstance = new Sortable(tagList, { 
@@ -382,18 +384,21 @@
         async function loadSocialLinks() {
             const socialList = document.getElementById('social-links-list');
             if (!socialList) return;
-            const { data } = await db.from('social_links').select('*').order('display_order');
+            const { data, error } = await db.from('social_links').select('*').order('display_order');
+            if (error) return showAlert(error.message, true);
+
             socialList.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(item => addSocialRow(item));
+            socialLinksCache = data || [];
+            if (socialLinksCache.length > 0) {
+                socialLinksCache.forEach(item => addSocialRow(item));
             } else {
                  addSocialRow();
             }
         }
 
         async function initProductsPanel() {
-            document.getElementById('add-product-form-row-btn')?.addEventListener('click', addProductFormRow);
-            document.getElementById('submit-all-new-products-btn')?.addEventListener('click', submitAllNewProducts);
+            document.getElementById('add-product-form-row-btn').onclick = addProductFormRow;
+            document.getElementById('submit-all-new-products-btn').onclick = submitAllNewProducts;
             addProductFormRow();
             await loadProducts();
         }
@@ -585,33 +590,43 @@
         async function saveNavigation(e) {
             const button = e.target;
             button.disabled = true; showLoading(true);
+            
             const navRows = document.querySelectorAll('#navigation-list .nav-item-row');
             const updates = Array.from(navRows).map((row, index) => {
                 const id = row.dataset.id;
                 const linkText = row.querySelector('.nav-text').value.trim();
-                const linkUrl = row.querySelector('.nav-url').value.trim();
-                const record = { link_text: linkText, link_url: linkUrl || `${BASE_URL}?category=${encodeURIComponent(linkText)}`, display_order: index };
+                const record = { 
+                    link_text: linkText, 
+                    link_url: linkText ? `${BASE_URL}?category=${encodeURIComponent(linkText)}` : '', 
+                    display_order: index 
+                };
                 if (!id.startsWith('new_')) {
                     record.id = parseInt(id);
                 }
                 return record;
-            });
-            
+            }).filter(r => r.link_text);
+
             const currentIds = updates.filter(r => r.id).map(r => r.id);
             const idsToDelete = navCache.map(n => n.id).filter(id => !currentIds.includes(id));
-            
+
             try {
                 if (idsToDelete.length > 0) await db.from('navigation').delete().in('id', idsToDelete);
-                if (updates.length > 0) await db.from('navigation').upsert(updates);
-                showAlert('Navigation updated!'); await loadNavigation();
-            } catch (error) { showAlert('Navigation save failed: ' + error.message, true);
-            } finally { showLoading(false); button.disabled = false; }
+                if (updates.length > 0) {
+                    const { error } = await db.from('navigation').upsert(updates);
+                    if (error) throw error;
+                }
+                showAlert('Navigation updated!'); 
+                await loadNavigation();
+            } catch (error) { 
+                showAlert('Navigation save failed: ' + error.message, true);
+            } finally { 
+                showLoading(false); button.disabled = false; 
+            }
         }
 
         async function saveTags(e) {
             const button = e.target;
-            button.disabled = true;
-            showLoading(true);
+            button.disabled = true; showLoading(true);
             
             const tagRows = document.querySelectorAll('#tag-list .tag-item-row');
             
@@ -627,26 +642,14 @@
 
             const currentIds = updates.filter(r => r.id).map(r => r.id);
             const idsToDelete = tagsCache.map(t => t.id).filter(id => !currentIds.includes(id));
-
             const recordsToUpdate = updates.filter(r => r.id);
             const recordsToInsert = updates.filter(r => !r.id);
 
             try {
-                if (idsToDelete.length > 0) {
-                    const { error: deleteError } = await db.from('product_tags').delete().in('id', idsToDelete);
-                    if (deleteError) throw deleteError;
-                }
-
-                if (recordsToUpdate.length > 0) {
-                    const { error: updateError } = await db.from('product_tags').upsert(recordsToUpdate);
-                    if (updateError) throw updateError;
-                }
-
-                if (recordsToInsert.length > 0) {
-                    const { error: insertError } = await db.from('product_tags').insert(recordsToInsert);
-                    if (insertError) throw insertError;
-                }
-
+                if (idsToDelete.length > 0) await db.from('product_tags').delete().in('id', idsToDelete);
+                if (recordsToUpdate.length > 0) await db.from('product_tags').upsert(recordsToUpdate);
+                if (recordsToInsert.length > 0) await db.from('product_tags').insert(recordsToInsert.map(({id, ...rest}) => rest));
+                
                 showAlert('Tags updated!');
                 await loadTags();
             } catch (error) {
@@ -657,38 +660,61 @@
             }
         }
 
-
         async function saveSocialLinks(e) {
             const button = e.target;
             button.disabled = true; showLoading(true);
             const socialRows = document.querySelectorAll('#social-links-list .social-row');
-            const records = [];
+            const updates = [];
+            
             for (const [index, row] of Array.from(socialRows).entries()) {
                 const platform = row.querySelector('.social-platform').value.trim();
                 const url = row.querySelector('.social-url').value.trim();
                 if (!platform || !url) continue;
+
                 let iconUrl = row.querySelector('.social-logo-preview').src;
                 const file = newSocialFiles.get(row.dataset.id);
-                if (file) iconUrl = await uploadImage(file, 'social-media-images');
-                const record = { platform_name: platform, link_url: url, icon_url: iconUrl && !iconUrl.startsWith('blob:') ? iconUrl : null, display_order: index };
-                if (row.dataset.id.startsWith('new_')) {
-                    records.push(record);
-                } else {
-                    record.id = parseInt(row.dataset.id);
-                    records.push(record);
+                if (file) {
+                    iconUrl = await uploadImage(file, 'social-media-images');
                 }
+                
+                const record = { 
+                    platform_name: platform, 
+                    link_url: url, 
+                    icon_url: iconUrl && !iconUrl.startsWith('blob:') ? iconUrl : null, 
+                    display_order: index 
+                };
+
+                if (!row.dataset.id.startsWith('new_')) {
+                    record.id = parseInt(row.dataset.id);
+                }
+                updates.push(record);
             }
-            const { data: existingLinks } = await db.from('social_links').select('id');
-            const currentIds = records.filter(r => r.id).map(r => r.id);
-            const idsToDelete = (existingLinks || []).map(l => l.id).filter(id => !currentIds.includes(id));
+            
+            const currentIds = updates.filter(r => r.id).map(r => r.id);
+            const idsToDelete = socialLinksCache.map(link => link.id).filter(id => !currentIds.includes(id));
+            const recordsToUpdate = updates.filter(r => r.id);
+            const recordsToInsert = updates.filter(r => !r.id);
 
             try {
-                if(idsToDelete.length > 0) await db.from('social_links').delete().in('id', idsToDelete);
-                if(records.length > 0) await db.from('social_links').upsert(records);
-                showAlert('Social links updated!'); newSocialFiles.clear(); await loadSocialLinks();
-            } catch (error) { showAlert('Save failed: ' + error.message, true);
-            } finally { showLoading(false); button.disabled = false; }
+                if (idsToDelete.length > 0) await db.from('social_links').delete().in('id', idsToDelete);
+                if (recordsToUpdate.length > 0) {
+                     const { error } = await db.from('social_links').upsert(recordsToUpdate);
+                     if (error) throw error;
+                }
+                if (recordsToInsert.length > 0) {
+                     const { error } = await db.from('social_links').insert(recordsToInsert.map(({id, ...rest}) => rest));
+                     if (error) throw error;
+                }
+                showAlert('Social links updated!'); 
+                newSocialFiles.clear(); 
+                await loadSocialLinks();
+            } catch (error) { 
+                showAlert('Save failed: ' + error.message, true);
+            } finally { 
+                showLoading(false); button.disabled = false; 
+            }
         }
+
 
         async function submitAllNewProducts() {
             const forms = document.querySelectorAll('.add-form-row');
@@ -754,9 +780,12 @@
 
         async function saveProductOrder(evt) {
             const reorderedIds = Array.from(evt.to.children).map(item => parseInt(item.dataset.id));
-            const updates = reorderedIds.map((id, index) => db.from('products').update({ display_order: index }).eq('id', id));
+            const updates = reorderedIds.map((id, index) => ({ id, display_order: index }));
             showLoading(true);
-            try { await Promise.all(updates); } 
+            try { 
+                const { error } = await db.from('products').upsert(updates);
+                if (error) throw error;
+            } 
             catch (error) { showAlert('Reorder failed: ' + error.message, true); await loadProducts(); } 
             finally { showLoading(false); }
         }
@@ -861,21 +890,20 @@
         }
         
         function setupProductEventListeners() {
-            document.getElementById('select-all-products')?.addEventListener('change', handleSelectAll);
-            document.getElementById('bulk-delete-btn')?.addEventListener('click', bulkDelete);
-            document.getElementById('bulk-toggle-discount-btn')?.addEventListener('click', bulkToggleDiscount);
-            document.getElementById('product-list')?.addEventListener('click', handleProductListClicks);
+            document.getElementById('select-all-products').onchange = handleSelectAll;
+            document.getElementById('bulk-delete-btn').onclick = bulkDelete;
+            document.getElementById('bulk-toggle-discount-btn').onclick = bulkToggleDiscount;
+            document.getElementById('product-list').onclick = handleProductListClicks;
         }
 
         function setupSettingsEventListeners() {
-            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
             const uploadBox = document.getElementById('hero-bg-upload-box');
             const fileInput = document.getElementById('hero-bg-input');
             const deleteBtn = document.getElementById('delete-hero-bg-btn');
             
-            uploadBox.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', handleHeroBgFileSelect);
-            deleteBtn.addEventListener('click', (e) => {
+            uploadBox.onclick = () => fileInput.click();
+            fileInput.onchange = handleHeroBgFileSelect;
+            deleteBtn.onclick = (e) => {
                 e.stopPropagation();
                 currentHeroBgFile = null;
                 currentHeroBgUrl = null;
@@ -885,7 +913,7 @@
                 preview.classList.add('hidden');
                 placeholder.classList.remove('hidden');
                 deleteBtn.classList.add('hidden');
-            });
+            };
         }
         
         function handleHeroBgFileSelect(e) {
