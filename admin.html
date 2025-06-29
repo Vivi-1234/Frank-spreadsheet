@@ -228,7 +228,7 @@
         let db; 
 
         // --- Global State ---
-        let productsCache = [], tagsCache = [], navCache = [], socialLinksCache = [];
+        let productsCache = [], tagsCache = [], navCache = [], socialLinksCache = [], currentAnalyticsData = [];
         let sortableInstance = null, sortableNavInstance = null, sortableFlashSaleInstance = null, sortableTagsInstance = null;
         let newProductFiles = new Map(), newSocialFiles = new Map();
         let currentEditFile = null, currentEditImageUrl = '';
@@ -278,7 +278,7 @@
         
         // --- Panel Initializers (Set up main event listeners once per panel) ---
         function initDashboard() {
-            document.getElementById('export-excel-btn').onclick = exportAnalyticsToExcel;
+            document.getElementById('export-excel-btn').addEventListener('click', exportAnalyticsToExcel);
             const datePicker = document.getElementById('date-range-picker');
             flatpickr(datePicker, {
                 mode: "range", dateFormat: "Y-m-d",
@@ -289,30 +289,30 @@
         }
 
         function initSettingsPanel() {
-            document.getElementById('save-settings-btn').onclick = saveSettings;
+            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
             loadSettings();
         }
 
         function initNavigationPanel() {
-            document.getElementById('add-nav-btn').onclick = () => renderNavItem({}, true);
-            document.getElementById('save-nav-btn').onclick = saveNavigation;
+            document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
+            document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
             loadNavigation();
         }
 
         function initTagsPanel() {
-            document.getElementById('add-tag-btn').onclick = addNewTag;
-            document.getElementById('save-tags-btn').onclick = saveTags;
+            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
+            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
             loadTags();
         }
 
         function initSocialLinksPanel() {
-            document.getElementById('add-social-btn').onclick = () => addSocialRow();
-            document.getElementById('save-social-btn').onclick = saveSocialLinks;
+            document.getElementById('add-social-btn').addEventListener('click', () => addSocialRow());
+            document.getElementById('save-social-btn').addEventListener('click', saveSocialLinks);
             loadSocialLinks();
         }
 
         function initFlashSalePanel() {
-            document.getElementById('save-flash-sale-btn').onclick = saveFlashSaleData;
+            document.getElementById('save-flash-sale-btn').addEventListener('click', saveFlashSaleData);
             loadFlashSaleData();
         }
 
@@ -397,8 +397,8 @@
         }
 
         async function initProductsPanel() {
-            document.getElementById('add-product-form-row-btn').onclick = addProductFormRow;
-            document.getElementById('submit-all-new-products-btn').onclick = submitAllNewProducts;
+            document.getElementById('add-product-form-row-btn').addEventListener('click', addProductFormRow);
+            document.getElementById('submit-all-new-products-btn').addEventListener('click', submitAllNewProducts);
             addProductFormRow();
             await loadProducts();
         }
@@ -584,7 +584,10 @@
                 showAlert('Site settings saved!');
                 currentHeroBgFile = null;
             }
-            button.disabled = false; button.textContent = 'Save Settings';
+            button.disabled = false; button.innerHTML = 'Save Settings';
+            lucide.createIcons({
+                nodes: [button]
+            });
         }
 
         async function saveNavigation(e) {
@@ -608,12 +611,19 @@
 
             const currentIds = updates.filter(r => r.id).map(r => r.id);
             const idsToDelete = navCache.map(n => n.id).filter(id => !currentIds.includes(id));
+            const recordsToUpdate = updates.filter(r => r.id);
+            const recordsToInsert = updates.filter(r => !r.id);
 
             try {
                 if (idsToDelete.length > 0) await db.from('navigation').delete().in('id', idsToDelete);
-                if (updates.length > 0) {
-                    const { error } = await db.from('navigation').upsert(updates);
-                    if (error) throw error;
+                
+                if (recordsToUpdate.length > 0) {
+                     const { error } = await db.from('navigation').upsert(recordsToUpdate);
+                     if (error) throw error;
+                }
+                if (recordsToInsert.length > 0) {
+                     const { error } = await db.from('navigation').insert(recordsToInsert.map(({id, ...rest}) => rest));
+                     if (error) throw error;
                 }
                 showAlert('Navigation updated!'); 
                 await loadNavigation();
@@ -714,7 +724,6 @@
                 showLoading(false); button.disabled = false; 
             }
         }
-
 
         async function submitAllNewProducts() {
             const forms = document.querySelectorAll('.add-form-row');
@@ -1025,7 +1034,7 @@
             
             const { data, error } = await db.from('analytics_events').select('*').gte('created_at', startStr).lt('created_at', endStr);
             if (error) { showLoading(false); return showAlert('Failed to load analytics: ' + error.message, true); }
-            currentAnalyticsData = data;
+            currentAnalyticsData = data || [];
 
             const { count: productCount } = await db.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true);
             const { count: discountCount } = await db.from('products').select('*', { count: 'exact', head: true }).eq('discount_is_active', true).eq('is_active', true);
