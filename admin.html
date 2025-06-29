@@ -242,7 +242,7 @@
         const modal = document.getElementById('edit-product-modal');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // --- HTML Templates (English, Minimalist) ---
+        // --- HTML Templates ---
         const templates = {
             dashboard: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Dashboard</h2><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input id="date-range-picker" class="input" placeholder="Select date range"></div><button id="export-excel-btn" class="btn btn-secondary text-sm"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export Data</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"><div class="panel p-5"><p class="text-sm text-text-secondary">Total Site Visits</p><p id="total-visits" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Product Clicks</p><p id="total-product-clicks" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Products</p><p id="total-products" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Active Discounts</p><p id="active-discounts" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Top Product</p><p id="top-product" class="text-lg font-bold truncate text-text-primary">N/A</p></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Site Visit Trend</h3><div class="h-64"><canvas id="visits-chart"></canvas></div></div><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Product Click Trend</h3><div class="h-64"><canvas id="product-clicks-chart"></canvas></div></div></div>`,
             products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Category</th><th class="p-4">Tags</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list" class="divide-y divide-border-color"></tbody></table></div></div></div>`,
@@ -259,12 +259,12 @@
             lucide.createIcons();
             switch (panelName) {
                 case 'dashboard': initDashboard(); break;
-                case 'settings': loadSettings(); break;
+                case 'settings': initSettingsPanel(); break;
                 case 'products': initProductsPanel(); break;
                 case 'tags': initTagsPanel(); break;
-                case 'navigation': loadNavigation(); break;
-                case 'social': loadSocialLinks(); break;
-                case 'flash_sale': loadFlashSaleData(); break;
+                case 'navigation': initNavigationPanel(); break;
+                case 'social': initSocialLinksPanel(); break;
+                case 'flash_sale': initFlashSalePanel(); break;
             }
         }
         function showLoading(show) { loadingOverlay.classList.toggle('hidden', !show); }
@@ -276,6 +276,46 @@
             setTimeout(() => { alertBox.remove(); }, 3000);
         }
         
+        // --- Panel Initializers ---
+        function initDashboard() {
+            const datePicker = document.getElementById('date-range-picker');
+            flatpickr(datePicker, {
+                mode: "range", dateFormat: "Y-m-d",
+                defaultDate: [new Date(new Date().setDate(new Date().getDate() - 29)), new Date()],
+                onChange: (selectedDates) => { if (selectedDates.length === 2) loadDashboardData(selectedDates[0], selectedDates[1]); },
+            });
+            document.getElementById('export-excel-btn').addEventListener('click', exportAnalyticsToExcel);
+            loadDashboardData(new Date(new Date().setDate(new Date().getDate() - 29)), new Date());
+        }
+
+        function initSettingsPanel() {
+            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            loadSettings();
+        }
+
+        function initNavigationPanel() {
+            document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
+            document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
+            loadNavigation();
+        }
+
+        function initTagsPanel() {
+            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
+            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
+            loadTags();
+        }
+
+        function initSocialLinksPanel() {
+            document.getElementById('add-social-btn').addEventListener('click', () => addSocialRow());
+            document.getElementById('save-social-btn').addEventListener('click', saveSocialLinks);
+            loadSocialLinks();
+        }
+
+        function initFlashSalePanel() {
+            document.getElementById('save-flash-sale-btn').addEventListener('click', saveFlashSaleData);
+            loadFlashSaleData();
+        }
+
         // --- Data Loading Functions ---
         async function loadSettings() {
             const { data } = await db.from('settings').select('*').limit(1).single();
@@ -318,15 +358,7 @@
                 ghostClass: 'bg-gray-800',
                 handle: '.cursor-move'
             });
-            document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
-            document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
             lucide.createIcons();
-        }
-
-        function initTagsPanel() {
-            document.getElementById('add-tag-btn').addEventListener('click', addNewTag);
-            document.getElementById('save-tags-btn').addEventListener('click', saveTags);
-            loadTags();
         }
 
         async function loadTags() {
@@ -350,20 +382,11 @@
         async function loadSocialLinks() {
             const socialList = document.getElementById('social-links-list');
             if (!socialList) return;
-            
-            // This setup only happens ONCE when the social tab is first loaded
-            if (!document.getElementById('add-social-btn')._listener) {
-                 document.getElementById('add-social-btn').addEventListener('click', () => addSocialRow());
-                 document.getElementById('save-social-btn').addEventListener('click', saveSocialLinks);
-                 document.getElementById('add-social-btn')._listener = true; // Mark as initialized
-            }
-
             const { data } = await db.from('social_links').select('*').order('display_order');
             socialList.innerHTML = '';
             if (data && data.length > 0) {
                 data.forEach(item => addSocialRow(item));
             } else {
-                 // If the list is empty, maybe add one empty row to start with
                  addSocialRow();
             }
         }
@@ -442,7 +465,7 @@
             div.className = 'flex items-center gap-2 nav-item-row p-2 bg-bg-panel rounded';
             div.dataset.id = item.id || `new_${Date.now()}`;
             div.innerHTML = `<i data-lucide="grip-vertical" class="cursor-move text-gray-500 flex-shrink-0"></i><input type="text" value="${item.link_text || ''}" class="input nav-text w-1/3" placeholder="Link Text"><input type="text" value="${item.link_url || ''}" class="input nav-url w-2/3" placeholder="URL is auto-generated" disabled><button class="delete-nav-btn p-2 hover:bg-gray-700 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>`;
-            div.querySelector('.nav-text').addEventListener('input', (e) => { e.target.nextElementSibling.value = e.target.value.trim() ? `${BASE_URL}?category=${e.target.value.trim()}` : ''; });
+            div.querySelector('.nav-text').addEventListener('input', (e) => { e.target.nextElementSibling.value = e.target.value.trim() ? `${BASE_URL}?category=${encodeURIComponent(e.target.value.trim())}` : ''; });
             div.querySelector('.delete-nav-btn').addEventListener('click', () => div.remove());
             navList.appendChild(div);
             if (isNew) lucide.createIcons();
@@ -567,7 +590,7 @@
                 const id = row.dataset.id;
                 const linkText = row.querySelector('.nav-text').value.trim();
                 const linkUrl = row.querySelector('.nav-url').value.trim();
-                const record = { link_text: linkText, link_url: linkUrl || `${BASE_URL}?category=${linkText}`, display_order: index };
+                const record = { link_text: linkText, link_url: linkUrl || `${BASE_URL}?category=${encodeURIComponent(linkText)}`, display_order: index };
                 if (!id.startsWith('new_')) {
                     record.id = parseInt(id);
                 }
@@ -955,17 +978,6 @@
             });
             lucide.createIcons();
         }
-
-        function initDashboard() {
-            const datePicker = document.getElementById('date-range-picker');
-            flatpickr(datePicker, {
-                mode: "range", dateFormat: "Y-m-d",
-                defaultDate: [new Date(new Date().setDate(new Date().getDate() - 29)), new Date()],
-                onChange: (selectedDates) => { if (selectedDates.length === 2) loadDashboardData(selectedDates[0], selectedDates[1]); },
-            });
-            document.getElementById('export-excel-btn').addEventListener('click', exportAnalyticsToExcel);
-            loadDashboardData(new Date(new Date().setDate(new Date().getDate() - 29)), new Date());
-        }
         
         function initFlatpickr(element, defaultDateStr) {
             if (!element) return;
@@ -1009,17 +1021,6 @@
             
             renderChart('visits-chart', 'line', dateLabels, processDataForChart(validVisits, dateLabels), 'Site Visits');
             renderChart('product-clicks-chart', 'line', dateLabels, processDataForChart(productClicks, dateLabels), 'Product Clicks');
-            
-            // --- PIE CHART LOGIC ADDED BACK ---
-            const countryCounts = validVisits.reduce((acc, curr) => {
-                const country = curr.country_name || 'Unknown';
-                acc[country] = (acc[country] || 0) + 1;
-                return acc;
-            }, {});
-            
-            const countryLabels = Object.keys(countryCounts);
-            const countryData = Object.values(countryCounts);
-            renderChart('country-chart', 'pie', countryLabels, countryData, 'Visitor Countries');
         }
         
         function processDataForChart(events, labels) {
@@ -1042,45 +1043,18 @@
                 responsive: true, maintainAspectRatio: false,
                 plugins: { 
                     legend: { 
-                        display: type !== 'pie', // Hide legend for pie chart to save space
-                        labels: { 
-                            color: '#FFFFFF'
-                        } 
+                        labels: { color: '#FFFFFF' } 
                     } 
                 },
                 scales: {
-                    x: { 
-                        display: type !== 'pie', // Hide scales for pie chart
-                        ticks: { color: '#FFFFFF' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' } 
-                    },
-                    y: { 
-                        display: type !== 'pie', // Hide scales for pie chart
-                        ticks: { color: '#FFFFFF' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
-                        beginAtZero: true 
-                    }
+                    x: { ticks: { color: '#FFFFFF' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    y: { ticks: { color: '#FFFFFF' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, beginAtZero: true }
                 }
             };
             
-            let chartData;
-            if (type === 'pie') {
-                chartData = {
-                    labels,
-                    datasets: [{
-                        label, data,
-                        backgroundColor: ['#4A90E2', '#50E3C2', '#F5A623', '#F8E71C', '#BD10E0', '#9013FE', '#B8E986', '#7ED321', '#E84A5F', '#D0021B'],
-                        borderColor: 'var(--bg-panel)',
-                        borderWidth: 2,
-                    }]
-                };
-                chartOptions.plugins.legend.display = true;
-                chartOptions.plugins.legend.position = 'right';
-            } else { // 'line' chart
-                const lineColor = label === 'Site Visits' ? '#FFFFFF' : '#AAAAAA';
-                const bgColor = label === 'Site Visits' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(170, 170, 170, 0.2)';
-                chartData = { labels, datasets: [{ label, data, borderColor: lineColor, backgroundColor: bgColor, fill: 'start', tension: 0.4, pointBackgroundColor: lineColor, pointBorderColor: '#000', pointHoverRadius: 6, pointHoverBorderWidth: 2 }] };
-            }
+            const lineColor = label === 'Site Visits' ? '#FFFFFF' : '#AAAAAA';
+            const bgColor = label === 'Site Visits' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(170, 170, 170, 0.2)';
+            const chartData = { labels, datasets: [{ label, data, borderColor: lineColor, backgroundColor: bgColor, fill: 'start', tension: 0.4, pointBackgroundColor: lineColor, pointBorderColor: '#000', pointHoverRadius: 6, pointHoverBorderWidth: 2 }] };
             
             new Chart(ctx, { type, data: chartData, options: chartOptions });
         }
@@ -1130,12 +1104,10 @@
             sortableFlashSaleInstance = new Sortable(flashSaleProductsList, { animation: 150, ghostClass: 'bg-gray-900' });
 
             lucide.createIcons();
-            document.getElementById('save-flash-sale-btn').addEventListener('click', saveFlashSaleData);
         }
 
         function renderProductSelectionItem(product, container, isInSale) {
             const div = document.createElement('div');
-            // Removed bg-gray-800 for a cleaner look
             div.className = 'flex items-center justify-between p-2 rounded-lg border border-border-color';
             div.dataset.id = product.id;
             let discountTag = '';
