@@ -131,16 +131,19 @@
             text-align: center;
         }
         .timer-value {
-            font-size: 2.25rem; /* 36px */
+            font-size: 1.5rem; /* 24px */
+            line-height: 2rem; /* 32px */
             font-weight: 700;
-            line-height: 1;
         }
         .timer-label {
             font-size: 0.75rem; /* 12px */
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: #9CA3AF;
-            margin-top: 0.25rem;
+        }
+        @media (min-width: 640px) {
+            .timer-value { font-size: 2.25rem; line-height: 1; }
+            .timer-label { margin-top: 0.25rem; }
         }
         .product-title {
             height: 3rem; /* for 2 lines */
@@ -179,6 +182,7 @@
         .aspect-video {
             aspect-ratio: 16 / 9;
         }
+        #mobile-menu { transition: transform 0.3s ease-in-out; }
     </style>
 </head>
 <body class="antialiased">
@@ -188,11 +192,25 @@
     <header class="header sticky top-0 z-30">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="/" class="text-lg sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
-                <nav id="main-nav" class="flex items-center space-x-4 md:space-x-8"></nav>
+                <a href="/" class="text-base sm:text-xl font-bold tracking-tighter">Franks AUTHENTIC Spreadsheet</a>
+                <nav id="main-nav" class="hidden md:flex items-center space-x-4 md:space-x-8"></nav>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="p-2">
+                        <i data-lucide="menu" class="h-6 w-6"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu-overlay" class="hidden fixed inset-0 bg-black/50 z-40"></div>
+    <div id="mobile-menu" class="fixed top-0 right-0 h-full w-64 bg-[#111111] shadow-lg z-50 p-6 transform translate-x-full">
+        <button id="close-mobile-menu-btn" class="absolute top-4 right-4 p-2">
+            <i data-lucide="x" class="h-6 w-6"></i>
+        </button>
+        <nav id="mobile-nav-content" class="mt-12 flex flex-col space-y-4"></nav>
+    </div>
 
     <main class="container mx-auto px-4 sm:px-6 lg:px-8">
         
@@ -220,7 +238,7 @@
                         <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Flash Sale</h2>
                         <p class="mt-1 text-gray-400">Ending In:</p>
                     </div>
-                    <div id="countdown-timer" class="flex gap-2 sm:gap-4 md:gap-6 flex-wrap justify-center"></div>
+                    <div id="countdown-timer" class="flex gap-4 sm:gap-6 flex-wrap justify-center"></div>
                 </div>
                 <div id="flash-sale-product-list" class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"></div>
             </div>
@@ -396,26 +414,20 @@
                     }
                 }
                 
-                // Render Navigation
+                // Render Navigation for both Desktop and Mobile
                 const mainNavContainer = document.getElementById('main-nav');
-                if (mainNavContainer) {
-                    const homeLink = `<a href="/" class="nav-link text-sm font-medium">Home</a>`;
+                const mobileNavContent = document.getElementById('mobile-nav-content');
+                if (mainNavContainer && mobileNavContent) {
+                    const homeLinkHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a>`;
+                    const tagLinksHTML = tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
                     
-                    const desktopTagLinks = tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link hidden md:block" data-tag="${tag.name}">${tag.name}</a>`).join('');
-
-                    const mobileTagDropdown = `
-                        <div class="relative md:hidden" id="mobile-tags-dropdown">
-                            <button id="mobile-tags-btn" class="nav-link text-sm font-medium flex items-center">
-                                Tags <i data-lucide="chevron-down" class="ml-1 h-4 w-4"></i>
-                            </button>
-                            <div id="mobile-tags-menu" class="hidden absolute right-0 mt-2 w-48 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-lg z-50">
-                                ${tags.map(tag => `<a href="#product-section" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('')}
-                            </div>
-                        </div>
-                    `;
+                    // Desktop Navigation
+                    mainNavContainer.innerHTML = homeLinkHTML + tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
                     
-                    mainNavContainer.innerHTML = homeLink + desktopTagLinks + mobileTagDropdown;
+                    // Mobile Navigation
+                    mobileNavContent.innerHTML = homeLinkHTML + tagLinksHTML;
                 }
+
 
                 // Render Social Icons
                 const socialSidebar = document.getElementById('social-sidebar');
@@ -490,19 +502,20 @@
                     button.classList.add('active');
                     currentCategoryFilter = button.dataset.category;
                     currentTagFilter = 'all'; // Reset tag filter
-                    document.querySelectorAll('#main-nav .nav-link.active').forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
                     applyFiltersAndRender();
                 }
             });
             
-            // Handle tag link clicks
-            const mainNav = document.getElementById('main-nav');
-            mainNav?.addEventListener('click', e => {
-                const tagLink = e.target.closest('.tag-link');
-                if(tagLink) {
+            // Handle tag link clicks (for both desktop and mobile)
+            document.body.addEventListener('click', e => {
+                 const tagLink = e.target.closest('.tag-link');
+                 if(tagLink) {
                     e.preventDefault();
-                    document.querySelectorAll('#main-nav .nav-link.active').forEach(el => el.classList.remove('active'));
-                    tagLink.classList.add('active');
+                    document.querySelectorAll('.tag-link.active').forEach(el => el.classList.remove('active'));
+                    // Highlight both mobile and desktop links if they exist
+                    document.querySelectorAll(`.tag-link[data-tag="${tagLink.dataset.tag}"]`).forEach(el => el.classList.add('active'));
+                    
                     currentTagFilter = tagLink.dataset.tag;
                     currentCategoryFilter = 'all'; // Reset category filter
                     document.querySelector('#category-filter-container .active')?.classList.remove('active');
@@ -510,27 +523,27 @@
                     applyFiltersAndRender();
                     document.getElementById('product-section')?.scrollIntoView();
 
-                    // Close mobile dropdown if open
-                    const mobileMenu = document.getElementById('mobile-tags-menu');
-                    if (mobileMenu) mobileMenu.classList.add('hidden');
-                }
+                    // Close mobile menu if it was a click from within it
+                    if (e.target.closest('#mobile-menu')) {
+                        toggleMobileMenu(false);
+                    }
+                 }
             });
 
-            // Handle mobile tags dropdown
-            const mobileTagsBtn = document.getElementById('mobile-tags-btn');
-            const mobileTagsMenu = document.getElementById('mobile-tags-menu');
-            mobileTagsBtn?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                mobileTagsMenu.classList.toggle('hidden');
-            });
+            // Mobile Menu Toggle
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
+            const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+            const mobileMenu = document.getElementById('mobile-menu');
 
-            // Close dropdown if clicking outside
-            document.addEventListener('click', (e) => {
-                const dropdown = document.getElementById('mobile-tags-dropdown');
-                if (dropdown && !dropdown.contains(e.target)) {
-                    mobileTagsMenu?.classList.add('hidden');
-                }
-            });
+            const toggleMobileMenu = (show) => {
+                mobileMenu.classList.toggle('translate-x-full', !show);
+                mobileMenuOverlay.classList.toggle('hidden', !show);
+            };
+
+            mobileMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMobileMenu(true); });
+            closeMobileMenuBtn.addEventListener('click', () => toggleMobileMenu(false));
+            mobileMenuOverlay.addEventListener('click', () => toggleMobileMenu(false));
         }
         
         // Setup the countdown timer for the flash sale
