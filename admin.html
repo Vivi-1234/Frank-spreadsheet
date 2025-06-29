@@ -521,9 +521,13 @@
                     </div>
                     <button class="delete-step-btn btn btn-danger btn-xs"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
                 </div>
+                <div>
+                    <label class="label">Section Title (Optional - for grouping steps)</label>
+                    <input type="text" class="input mt-1 step-section-title" value="${step.section_title || ''}" placeholder="e.g., Requirements">
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-4">
-                        <div><label class="label">Title</label><input type="text" class="input mt-1 step-title" value="${step.title || ''}"></div>
+                        <div><label class="label">Step Title</label><input type="text" class="input mt-1 step-title" value="${step.title || ''}"></div>
                         <div><label class="label">Description</label><textarea class="input mt-1 step-description" rows="4">${step.description || ''}</textarea></div>
                     </div>
                     <div class="space-y-1">
@@ -814,6 +818,7 @@
                     
                     const record = {
                         display_order: index,
+                        section_title: row.querySelector('.step-section-title').value.trim() || null,
                         title: row.querySelector('.step-title').value.trim(),
                         description: row.querySelector('.step-description').value.trim(),
                         image_url: imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : null
@@ -840,10 +845,8 @@
                 }
                 
                 if (recordsToUpdate.length > 0) {
-                    // *** FIXED CODE BLOCK ***
-                    // Use Promise.all to run updates concurrently, preventing the 'GENERATED ALWAYS' error
                     const updatePromises = recordsToUpdate.map(record => {
-                        const { id, ...updateData } = record; // Separate id from the rest of the data
+                        const { id, ...updateData } = record;
                         return db.from('how_to_buy_steps').update(updateData).eq('id', id);
                     });
                     const results = await Promise.all(updatePromises);
