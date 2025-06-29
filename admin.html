@@ -374,8 +374,8 @@
             const orderedFlashSaleProducts = (flashSaleProductsRes.data || []).map(orderedItem => flashSaleProducts.find(p => p.id === orderedItem.product_id)).filter(Boolean);
             const availableProducts = allProducts.filter(p => !flashSaleProductIds.has(p.id));
 
-            availableProducts.forEach(p => renderProductSelectionItem(p, allProductsList, false));
-            orderedFlashSaleProducts.forEach(p => renderProductSelectionItem(p, flashSaleProductsList, true));
+            availableProducts.forEach(p => renderProductSelectionItem(p, allProductsList));
+            orderedFlashSaleProducts.forEach(p => renderProductSelectionItem(p, flashSaleProductsList));
             
             if (sortableFlashSaleInstance) sortableFlashSaleInstance.destroy();
             sortableFlashSaleInstance = new Sortable(flashSaleProductsList, { animation: 150, ghostClass: 'bg-gray-900', group: 'flash-sale' });
@@ -395,6 +395,7 @@
 
             if (settingsRes.error || stepsRes.error) {
                 showAlert('Failed to load "How-to-buy" data.', true);
+                console.error("Error loading how-to-buy data:", settingsRes.error || stepsRes.error);
                 return;
             }
 
@@ -778,12 +779,11 @@
             try {
                 // 1. Save general settings
                 const settingsUpdate = {
-                    id: 1,
                     video_url: document.getElementById('how-to-buy-video-url').value.trim() || null,
                     signup_url: document.getElementById('how-to-buy-signup-url').value.trim() || null,
                     updated_at: new Date().toISOString()
                 };
-                const { error: settingsError } = await db.from('how_to_buy_settings').upsert(settingsUpdate);
+                const { error: settingsError } = await db.from('how_to_buy_settings').update(settingsUpdate).eq('id', 1);
                 if (settingsError) throw settingsError;
 
                 // 2. Process and save steps
@@ -822,8 +822,10 @@
                 }
                 
                 // 4. Upsert the remaining steps
-                const { error: stepsError } = await db.from('how_to_buy_steps').upsert(stepUpdates);
-                if (stepsError) throw stepsError;
+                if (stepUpdates.length > 0) {
+                    const { error: stepsError } = await db.from('how_to_buy_steps').upsert(stepUpdates);
+                    if (stepsError) throw stepsError;
+                }
 
                 showAlert('Successfully saved "How-to-buy" page!');
                 newHowToBuyStepFiles.clear();
@@ -831,6 +833,7 @@
 
             } catch (error) {
                 showAlert('Save failed: ' + error.message, true);
+                console.error("Save How-to-buy error:", error);
             } finally {
                 showLoading(false);
                 button.disabled = false;
