@@ -821,8 +821,8 @@
                 const recordsToInsert = stepPayloads.filter(s => !s.id);
                 
                 // 3. Figure out which steps to delete
-                const existingStepsRes = await db.from('how_to_buy_steps').select('id');
-                const existingStepIds = (existingStepsRes.data || []).map(s => s.id);
+                const { data: existingSteps } = await db.from('how_to_buy_steps').select('id');
+                const existingStepIds = (existingSteps || []).map(s => s.id);
                 const currentStepIds = recordsToUpdate.map(s => s.id);
                 const idsToDelete = existingStepIds.filter(id => !currentStepIds.includes(id));
 
@@ -841,7 +841,6 @@
                      const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert);
                      if (insertError) throw insertError;
                 }
-
 
                 showAlert('Successfully saved "How-to-buy" page!');
                 newHowToBuyStepFiles.clear();
