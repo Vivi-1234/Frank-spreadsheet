@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to buy - Franks AUTHENTIC Spreadsheet</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0D0D0D; color: #F9FAFB; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1533134486753-c833f0ed4866?q=80&w=2940&auto=format&fit=crop'); background-size: cover; background-position: center center; opacity: 0.1; z-index: -1; }
+        .header { background-color: rgba(13, 13, 13, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .nav-link { position: relative; transition: color 0.3s ease; }
+        .nav-link:after { content: ''; position: absolute; width: 0; height: 2px; display: block; margin-top: 4px; right: 0; background: #FFFFFF; transition: width 0.3s ease; }
+        .nav-link.active:after, .nav-link:hover:after { width: 100%; left: 0; }
+        .fade-in-up { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .fade-in-up.visible { opacity: 1; transform: translateY(0); }
+        .social-sidebar-icon { display: block; width: 48px; height: 48px; transition: transform 0.3s ease; }
+        .social-sidebar-icon:hover { transform: scale(1.1); }
+        .social-sidebar-icon img { width: 100%; height: 100%; border-radius: 9999px; object-fit: cover; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); }
+        #mobile-menu { transition: transform 0.3s ease-in-out; }
+        .step-number { width: 3rem; height: 3rem; flex-shrink: 0; border: 2px solid rgba(255, 255, 255, 0.2); background-color: rgba(13, 13, 13, 0.5); }
+        .steps-timeline { position: relative; }
+        .steps-timeline::before { content: ''; position: absolute; top: 2rem; bottom: 2rem; left: calc(1.5rem - 1px); width: 2px; background-color: rgba(255, 255, 255, 0.1); z-index: -1; }
+        .aspect-video { aspect-ratio: 16 / 9; }
+        .btn { padding: 0.625rem 1.5rem; border-radius: 9999px; font-weight: 600; transition: all 0.3s ease; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+        .btn-primary { background-color: #FFFFFF; color: #0D0D0D; }
+        .btn-primary:hover { background-color: #D1D5DB; }
+        .btn-secondary { background-color: transparent; color: #F9FAFB; border: 1px solid rgba(255, 255, 255, 0.3); }
+        .btn-secondary:hover { background-color: rgba(255, 255, 255, 0.1); }
+        @media (min-width: 1024px) { .steps-timeline::before { display: none; } }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="social-sidebar" class="fixed right-4 top-1/2 -translate-y-1/2 z-40 flex-col items-center space-y-4 hidden md:flex"></div>
+    <header class="header sticky top-0 z-30">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <a href="/" class="text-base sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
+                <nav id="main-nav" class="hidden md:flex items-center space-x-4 md:space-x-8"></nav>
+                <div class="md:hidden"><button id="mobile-menu-btn" class="p-2"><i data-lucide="menu" class="h-6 w-6"></i></button></div>
+            </div>
+        </div>
+    </header>
+    <div id="mobile-menu-overlay" class="hidden fixed inset-0 bg-black/50 z-40"></div>
+    <div id="mobile-menu" class="fixed top-0 right-0 h-full w-64 bg-[#111111] shadow-lg z-50 p-6 transform translate-x-full">
+        <button id="close-mobile-menu-btn" class="absolute top-4 right-4 p-2"><i data-lucide="x" class="h-6 w-6"></i></button>
+        <nav id="mobile-nav-content" class="mt-12 flex flex-col space-y-4"></nav>
+    </div>
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <section class="text-center py-12 md:py-16 fade-in-up">
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">How to buy</h1>
+            <p class="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-400">Follow these simple steps to get the best products sourced and shipped directly to you.</p>
+            <div id="hero-buttons" class="mt-8 flex items-center justify-center gap-4 hidden">
+                <a id="signup-btn" href="#" target="_blank" class="btn btn-primary">Sign Up Here</a>
+                <a href="#steps-section" class="btn btn-secondary">View Steps</a>
+            </div>
+        </section>
+        <section id="video-section" class="my-12 md:my-16 fade-in-up hidden">
+            <div class="max-w-4xl mx-auto">
+                <div class="aspect-video bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800">
+                    <iframe id="video-player" class="w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
+        </section>
+        <section id="steps-section" class="mt-12 md:mt-16">
+            <div id="steps-container" class="max-w-4xl mx-auto space-y-8 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-12 steps-timeline">
+                <!-- Steps will be dynamically injected here -->
+            </div>
+        </section>
+    </main>
+    <footer class="mt-20 md:mt-28 border-t border-gray-800">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="text-center">
+                <p class="font-bold text-lg">Franks AUTHENTIC Spreadsheet</p>
+                <p class="text-sm text-gray-400 mt-2 max-w-md mx-auto">A curated collection of the finest goods. Join us to find your next perfect pair.</p>
+                <div id="social-footer-container" class="flex md:hidden justify-center items-center space-x-4 mt-6"></div>
+            </div>
+            <div class="mt-10 pt-8 border-t border-gray-800 text-center text-xs text-gray-500"><p>&copy; 2025 Franks AUTHENTIC Spreadsheet. All Rights Reserved.</p></div>
+        </div>
+    </footer>
+    <script type="module">
+        const SUPABASE_URL = 'https://xqlzhvfqibkgdgcycnel.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxbHpodmZxaWJrZ2RnY3ljbmVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMjIwMTQsImV4cCI6MjA2NjY5ODAxNH0.CcYZW2TixQQS5TkJ4zr4CGLBEZKx7MGtI4cFg1H2tc0';
+        const { createClient } = supabase;
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        async function initializePage() {
+            try {
+                const [settingsRes, stepsRes, socialRes, tagsRes] = await Promise.all([
+                    db.from('how_to_buy_settings').select('video_url, signup_url').limit(1).single(),
+                    db.from('how_to_buy_steps').select('*').order('display_order'),
+                    db.from('social_links').select('*').order('display_order'),
+                    db.from('product_tags').select('name').order('display_order')
+                ]);
+                const settings = settingsRes.data, steps = stepsRes.data, socialLinks = socialRes.data, tags = tagsRes.data;
+
+                const mainNavContainer = document.getElementById('main-nav'), mobileNavContent = document.getElementById('mobile-nav-content');
+                if (mainNavContainer && mobileNavContent) {
+                    let navHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link active text-lg md:text-sm font-medium">How-to-buy</a>`;
+                    if (tags) { navHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-lg md:text-sm font-medium">${tag.name}</a>`).join(''); }
+                    mainNavContainer.innerHTML = navHTML.replaceAll('text-lg md:text-sm', 'text-sm');
+                    mobileNavContent.innerHTML = navHTML;
+                }
+
+                if (settings) {
+                    const heroBtns = document.getElementById('hero-buttons');
+                    const signupBtn = document.getElementById('signup-btn');
+                    if (signupBtn && settings.signup_url) { signupBtn.href = settings.signup_url; heroBtns.classList.remove('hidden'); }
+                    const videoSection = document.getElementById('video-section'), videoPlayer = document.getElementById('video-player');
+                    if (videoSection && videoPlayer && settings.video_url) { videoPlayer.src = settings.video_url; videoSection.classList.remove('hidden'); }
+                }
+
+                const stepsContainer = document.getElementById('steps-container');
+                if (steps && steps.length > 0) {
+                    stepsContainer.innerHTML = steps.map((step, index) => {
+                        const isReversed = index % 2 !== 0;
+                        const textBlock = `<div class="lg:col-start-${isReversed ? 2 : 1} lg:row-start-${index + 1} fade-in-up" style="transition-delay: 100ms;"><div class="flex items-start gap-4"><div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${index + 1}</div><div class="flex-1 pt-1.5"><h2 class="text-xl font-bold text-white">${step.title || ''}</h2><p class="mt-2 text-gray-400">${step.description || ''}</p></div></div></div>`;
+                        const imageBlock = `<div class="lg:col-start-${isReversed ? 1 : 2} lg:row-start-${index + 1} flex items-center justify-center p-4 fade-in-up" style="transition-delay: 200ms;"><img src="${step.image_url || 'https://placehold.co/500x350/1a1a1a/9CA3AF?text=Image'}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800"></div>`;
+                        return textBlock + imageBlock;
+                    }).join('<div class="hidden lg:block lg:col-span-2 h-12"></div>');
+                } else {
+                    stepsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Steps are being configured. Please check back later.</p>';
+                }
+                
+                const socialSidebar = document.getElementById('social-sidebar'), socialFooter = document.getElementById('social-footer-container');
+                if (socialLinks && socialLinks.length > 0) {
+                    let sidebarHTML = '', footerHTML = '';
+                    socialLinks.forEach(link => { const iconImage = `<img src="${link.icon_url}" alt="${link.platform_name} logo" class="w-full h-full object-cover rounded-full">`; let finalUrl = link.link_url || '#'; if (finalUrl !== '#' && !finalUrl.startsWith('http')) finalUrl = `https://${finalUrl}`; sidebarHTML += `<a href="${finalUrl}" target="_blank" class="social-sidebar-icon" title="${link.platform_name}">${iconImage}</a>`; footerHTML += `<a href="${finalUrl}" target="_blank" class="text-gray-400 hover:text-white transition-colors"><div class="w-8 h-8">${iconImage}</div></a>`; });
+                    if (socialSidebar) socialSidebar.innerHTML = sidebarHTML;
+                    if (socialFooter) socialFooter.innerHTML = footerHTML;
+                }
+            } catch (error) { console.error('Error initializing page:', error); } finally { lucide.createIcons(); setupEventListeners(); setupAnimations(); }
+        }
+        function setupEventListeners() { const mobileMenuBtn = document.getElementById('mobile-menu-btn'), closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn'), mobileMenuOverlay = document.getElementById('mobile-menu-overlay'), mobileMenu = document.getElementById('mobile-menu'); const toggleMobileMenu = (show) => { mobileMenu.classList.toggle('translate-x-full', !show); mobileMenuOverlay.classList.toggle('hidden', !show); }; mobileMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMobileMenu(true); }); closeMobileMenuBtn.addEventListener('click', () => toggleMobileMenu(false)); mobileMenuOverlay.addEventListener('click', () => toggleMobileMenu(false)); }
+        function setupAnimations() { const observer = new IntersectionObserver(entries => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } }); }, { threshold: 0.15 }); document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el)); }
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>
