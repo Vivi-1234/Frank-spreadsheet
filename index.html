@@ -188,8 +188,8 @@
     <header class="header sticky top-0 z-30">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="/" class="text-xl font-bold tracking-tighter">Franks AUTHENTIC Spreadsheet</a>
-                <div id="main-nav" class="flex items-center space-x-6 md:space-x-8"></div>
+                <a href="/" class="text-lg sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
+                <nav id="main-nav" class="flex items-center space-x-4 md:space-x-8"></nav>
             </div>
         </div>
     </header>
@@ -205,7 +205,7 @@
         </section>
 
         <section id="video-section" class="my-12 md:my-16 fade-in-up hidden">
-            <div class="max-w-6xl mx-auto">
+            <div class="max-w-4xl mx-auto">
                 <h2 class="text-3xl font-bold text-center mb-8">How It Works</h2>
                 <div class="aspect-video bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800">
                     <iframe id="video-player" class="w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -220,7 +220,7 @@
                         <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Flash Sale</h2>
                         <p class="mt-1 text-gray-400">Ending In:</p>
                     </div>
-                    <div id="countdown-timer" class="flex gap-4 md:gap-6"></div>
+                    <div id="countdown-timer" class="flex gap-2 sm:gap-4 md:gap-6 flex-wrap justify-center"></div>
                 </div>
                 <div id="flash-sale-product-list" class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"></div>
             </div>
@@ -381,7 +381,7 @@
 
                 // Render Hero section and Video Section content
                 if (settings) {
-                    document.title = settings.site_title || "Franks AUTHENTIC Spreadsheet";
+                    document.title = "Franks AUTHENTIC Spreadsheet";
                     document.getElementById('site-title').textContent = settings.site_title || 'Discover Your Style';
                     document.getElementById('site-subtitle').textContent = settings.site_subtitle || 'The best finds, curated for you.';
                     if (settings.hero_background_url) {
@@ -400,8 +400,21 @@
                 const mainNavContainer = document.getElementById('main-nav');
                 if (mainNavContainer) {
                     const homeLink = `<a href="/" class="nav-link text-sm font-medium">Home</a>`;
-                    const tagLinks = tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
-                    mainNavContainer.innerHTML = homeLink + tagLinks;
+                    
+                    const desktopTagLinks = tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link hidden md:block" data-tag="${tag.name}">${tag.name}</a>`).join('');
+
+                    const mobileTagDropdown = `
+                        <div class="relative md:hidden" id="mobile-tags-dropdown">
+                            <button id="mobile-tags-btn" class="nav-link text-sm font-medium flex items-center">
+                                Tags <i data-lucide="chevron-down" class="ml-1 h-4 w-4"></i>
+                            </button>
+                            <div id="mobile-tags-menu" class="hidden absolute right-0 mt-2 w-48 bg-[#1a1a1a] border border-gray-700 rounded-md shadow-lg z-50">
+                                ${tags.map(tag => `<a href="#product-section" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    mainNavContainer.innerHTML = homeLink + desktopTagLinks + mobileTagDropdown;
                 }
 
                 // Render Social Icons
@@ -482,7 +495,7 @@
                 }
             });
             
-            // Handle tag link clicks in header
+            // Handle tag link clicks
             const mainNav = document.getElementById('main-nav');
             mainNav?.addEventListener('click', e => {
                 const tagLink = e.target.closest('.tag-link');
@@ -496,6 +509,26 @@
                     document.querySelector('#category-filter-container [data-category="all"]')?.classList.add('active');
                     applyFiltersAndRender();
                     document.getElementById('product-section')?.scrollIntoView();
+
+                    // Close mobile dropdown if open
+                    const mobileMenu = document.getElementById('mobile-tags-menu');
+                    if (mobileMenu) mobileMenu.classList.add('hidden');
+                }
+            });
+
+            // Handle mobile tags dropdown
+            const mobileTagsBtn = document.getElementById('mobile-tags-btn');
+            const mobileTagsMenu = document.getElementById('mobile-tags-menu');
+            mobileTagsBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mobileTagsMenu.classList.toggle('hidden');
+            });
+
+            // Close dropdown if clicking outside
+            document.addEventListener('click', (e) => {
+                const dropdown = document.getElementById('mobile-tags-dropdown');
+                if (dropdown && !dropdown.contains(e.target)) {
+                    mobileTagsMenu?.classList.add('hidden');
                 }
             });
         }
