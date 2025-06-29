@@ -400,7 +400,7 @@
             }
 
             const settings = settingsRes.data;
-            howToBuySettingsCache = settings; // Cache the settings including the ID
+            howToBuySettingsCache = settings; 
             if (settings) {
                 document.getElementById('how-to-buy-video-url').value = settings.video_url || '';
                 document.getElementById('how-to-buy-signup-url').value = settings.signup_url || '';
@@ -412,7 +412,7 @@
             if (steps.length > 0) {
                 steps.forEach(step => renderHowToBuyStep(step));
             } else {
-                renderHowToBuyStep(); // Render one empty step if none exist
+                renderHowToBuyStep();
             }
 
             if (sortableHowToBuyInstance) sortableHowToBuyInstance.destroy();
@@ -525,13 +525,16 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-4">
                         <div><label class="label">Title</label><input type="text" class="input mt-1 step-title" value="${step.title || ''}"></div>
-                        <div><label class="label">Description</label><textarea class="input mt-1 step-description" rows="3">${step.description || ''}</textarea></div>
+                        <div><label class="label">Description</label><textarea class="input mt-1 step-description" rows="4">${step.description || ''}</textarea></div>
                     </div>
                     <div class="space-y-1">
                         <label class="label">Image</label>
-                        <div class="step-image-upload-box relative p-4 rounded-lg text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color">
-                            <p class="step-image-placeholder ${step.image_url ? 'hidden' : ''}">Click or drag image</p>
-                            <img src="${step.image_url || ''}" class="step-image-preview ${step.image_url ? '' : 'hidden'} max-h-24 mx-auto rounded">
+                        <div class="step-image-upload-box relative p-4 rounded-lg text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color h-full flex items-center justify-center">
+                            <p class="step-image-placeholder ${step.image_url ? 'hidden' : ''}">Click to upload</p>
+                            <img src="${step.image_url || ''}" class="step-image-preview ${step.image_url ? '' : 'hidden'} max-h-32 mx-auto rounded">
+                            <button class="delete-step-image-btn ${step.image_url ? '' : 'hidden'} absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">
+                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                            </button>
                         </div>
                         <input type="file" class="hidden step-image-input" accept="image/*">
                     </div>
@@ -791,7 +794,7 @@
 
                 // 2. Process and save steps
                 const stepRows = document.querySelectorAll('.how-to-buy-step-row');
-                const stepUpdates = [];
+                const stepPayloads = [];
                 for (const [index, row] of Array.from(stepRows).entries()) {
                     const stepId = row.dataset.id;
                     let imageUrl = row.querySelector('.step-image-preview').src;
@@ -811,24 +814,34 @@
                     if (!stepId.startsWith('new_')) {
                         record.id = parseInt(stepId);
                     }
-                    stepUpdates.push(record);
+                    stepPayloads.push(record);
                 }
 
+                const recordsToUpdate = stepPayloads.filter(s => s.id);
+                const recordsToInsert = stepPayloads.filter(s => !s.id);
+                
                 // 3. Figure out which steps to delete
                 const existingStepsRes = await db.from('how_to_buy_steps').select('id');
                 const existingStepIds = (existingStepsRes.data || []).map(s => s.id);
-                const currentStepIds = stepUpdates.filter(s => s.id).map(s => s.id);
+                const currentStepIds = recordsToUpdate.map(s => s.id);
                 const idsToDelete = existingStepIds.filter(id => !currentStepIds.includes(id));
 
                 if (idsToDelete.length > 0) {
                     await db.from('how_to_buy_steps').delete().in('id', idsToDelete);
                 }
                 
-                // 4. Upsert the remaining steps
-                if (stepUpdates.length > 0) {
-                    const { error: stepsError } = await db.from('how_to_buy_steps').upsert(stepUpdates);
-                    if (stepsError) throw stepsError;
+                // 4. Update existing records
+                if (recordsToUpdate.length > 0) {
+                    const { error: updateError } = await db.from('how_to_buy_steps').upsert(recordsToUpdate);
+                    if (updateError) throw updateError;
                 }
+                
+                // 5. Insert new records
+                if (recordsToInsert.length > 0) {
+                     const { error: insertError } = await db.from('how_to_buy_steps').insert(recordsToInsert);
+                     if (insertError) throw insertError;
+                }
+
 
                 showAlert('Successfully saved "How-to-buy" page!');
                 newHowToBuyStepFiles.clear();
@@ -971,6 +984,7 @@
             const imageInput = row.querySelector('.step-image-input');
             const preview = row.querySelector('.step-image-preview');
             const placeholder = row.querySelector('.step-image-placeholder');
+            const deleteImageBtn = row.querySelector('.delete-step-image-btn');
 
             imageBox.addEventListener('click', () => imageInput.click());
             imageInput.addEventListener('change', e => {
@@ -980,11 +994,20 @@
                     preview.src = URL.createObjectURL(file);
                     preview.classList.remove('hidden');
                     placeholder.classList.add('hidden');
+                    deleteImageBtn.classList.remove('hidden');
                 }
+            });
+             deleteImageBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                newHowToBuyStepFiles.delete(row.dataset.id);
+                preview.src = '';
+                imageInput.value = ''; // Reset file input
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                deleteImageBtn.classList.add('hidden');
             });
         }
         
-        // This function was missing. I've re-added it.
         function setupSocialRowListeners(row) {
             const logoBox = row.querySelector('.social-logo-box');
             const logoInput = row.querySelector('.social-logo-input');
