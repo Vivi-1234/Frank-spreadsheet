@@ -318,7 +318,6 @@
                 ghostClass: 'bg-gray-800',
                 handle: '.cursor-move'
             });
-
             document.getElementById('add-nav-btn').addEventListener('click', () => renderNavItem({}, true));
             document.getElementById('save-nav-btn').addEventListener('click', saveNavigation);
             lucide.createIcons();
@@ -351,11 +350,22 @@
         async function loadSocialLinks() {
             const socialList = document.getElementById('social-links-list');
             if (!socialList) return;
+            
+            // This setup only happens ONCE when the social tab is first loaded
+            if (!document.getElementById('add-social-btn')._listener) {
+                 document.getElementById('add-social-btn').addEventListener('click', () => addSocialRow());
+                 document.getElementById('save-social-btn').addEventListener('click', saveSocialLinks);
+                 document.getElementById('add-social-btn')._listener = true; // Mark as initialized
+            }
+
             const { data } = await db.from('social_links').select('*').order('display_order');
             socialList.innerHTML = '';
-            if (data) data.forEach(item => addSocialRow(item));
-            document.getElementById('add-social-btn').addEventListener('click', () => addSocialRow());
-            document.getElementById('save-social-btn').addEventListener('click', saveSocialLinks);
+            if (data && data.length > 0) {
+                data.forEach(item => addSocialRow(item));
+            } else {
+                 // If the list is empty, maybe add one empty row to start with
+                 addSocialRow();
+            }
         }
 
         async function initProductsPanel() {
@@ -647,7 +657,7 @@
             }
             const { data: existingLinks } = await db.from('social_links').select('id');
             const currentIds = records.filter(r => r.id).map(r => r.id);
-            const idsToDelete = existingLinks.map(l => l.id).filter(id => !currentIds.includes(id));
+            const idsToDelete = (existingLinks || []).map(l => l.id).filter(id => !currentIds.includes(id));
 
             try {
                 if(idsToDelete.length > 0) await db.from('social_links').delete().in('id', idsToDelete);
@@ -999,6 +1009,17 @@
             
             renderChart('visits-chart', 'line', dateLabels, processDataForChart(validVisits, dateLabels), 'Site Visits');
             renderChart('product-clicks-chart', 'line', dateLabels, processDataForChart(productClicks, dateLabels), 'Product Clicks');
+            
+            // --- PIE CHART LOGIC ADDED BACK ---
+            const countryCounts = validVisits.reduce((acc, curr) => {
+                const country = curr.country_name || 'Unknown';
+                acc[country] = (acc[country] || 0) + 1;
+                return acc;
+            }, {});
+            
+            const countryLabels = Object.keys(countryCounts);
+            const countryData = Object.values(countryCounts);
+            renderChart('country-chart', 'pie', countryLabels, countryData, 'Visitor Countries');
         }
         
         function processDataForChart(events, labels) {
@@ -1021,27 +1042,45 @@
                 responsive: true, maintainAspectRatio: false,
                 plugins: { 
                     legend: { 
+                        display: type !== 'pie', // Hide legend for pie chart to save space
                         labels: { 
-                            color: '#FFFFFF' // Use direct hex code for reliability
+                            color: '#FFFFFF'
                         } 
                     } 
                 },
                 scales: {
                     x: { 
-                        ticks: { color: '#FFFFFF' }, // Use direct hex code
+                        display: type !== 'pie', // Hide scales for pie chart
+                        ticks: { color: '#FFFFFF' },
                         grid: { color: 'rgba(255, 255, 255, 0.1)' } 
                     },
                     y: { 
-                        ticks: { color: '#FFFFFF' }, // Use direct hex code
+                        display: type !== 'pie', // Hide scales for pie chart
+                        ticks: { color: '#FFFFFF' },
                         grid: { color: 'rgba(255, 255, 255, 0.1)' }, 
                         beginAtZero: true 
                     }
                 }
             };
             
-            const lineColor = label === 'Site Visits' ? '#FFFFFF' : '#AAAAAA';
-            const bgColor = label === 'Site Visits' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(170, 170, 170, 0.2)';
-            const chartData = { labels, datasets: [{ label, data, borderColor: lineColor, backgroundColor: bgColor, fill: 'start', tension: 0.4, pointBackgroundColor: lineColor, pointBorderColor: '#000', pointHoverRadius: 6, pointHoverBorderWidth: 2 }] };
+            let chartData;
+            if (type === 'pie') {
+                chartData = {
+                    labels,
+                    datasets: [{
+                        label, data,
+                        backgroundColor: ['#4A90E2', '#50E3C2', '#F5A623', '#F8E71C', '#BD10E0', '#9013FE', '#B8E986', '#7ED321', '#E84A5F', '#D0021B'],
+                        borderColor: 'var(--bg-panel)',
+                        borderWidth: 2,
+                    }]
+                };
+                chartOptions.plugins.legend.display = true;
+                chartOptions.plugins.legend.position = 'right';
+            } else { // 'line' chart
+                const lineColor = label === 'Site Visits' ? '#FFFFFF' : '#AAAAAA';
+                const bgColor = label === 'Site Visits' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(170, 170, 170, 0.2)';
+                chartData = { labels, datasets: [{ label, data, borderColor: lineColor, backgroundColor: bgColor, fill: 'start', tension: 0.4, pointBackgroundColor: lineColor, pointBorderColor: '#000', pointHoverRadius: 6, pointHoverBorderWidth: 2 }] };
+            }
             
             new Chart(ctx, { type, data: chartData, options: chartOptions });
         }
