@@ -26,7 +26,7 @@
         #mobile-menu { transition: transform 0.3s ease-in-out; }
         .step-number { width: 3rem; height: 3rem; flex-shrink: 0; border: 2px solid rgba(255, 255, 255, 0.2); background-color: rgba(13, 13, 13, 0.5); }
         .steps-timeline { position: relative; }
-        .steps-timeline::before { content: ''; position: absolute; top: 2rem; bottom: 2rem; left: calc(1.5rem - 1px); width: 2px; background-color: rgba(255, 255, 255, 0.1); z-index: -1; }
+        .steps-timeline::before { content: ''; position: absolute; top: 2rem; bottom: 2rem; left: calc(1.5rem - 1px); width: 2px; background-color: rgba(255, 255, 255, 0.1); z-index: 0; }
         .aspect-video { aspect-ratio: 16 / 9; }
         .btn { padding: 0.625rem 1.5rem; border-radius: 9999px; font-weight: 600; transition: all 0.3s ease; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
         .btn-primary { background-color: #FFFFFF; color: #0D0D0D; }
@@ -141,51 +141,47 @@
                 const stepsContainer = document.getElementById('steps-container');
                 if (steps && steps.length > 0) {
                     // Group steps by section_title
-                    const groupedSteps = steps.reduce((acc, step) => {
-                        // Use a placeholder for steps with no section title to group them together
-                        const section = step.section_title || 'default_section';
-                        if (!acc[section]) {
-                            acc[section] = [];
+                    let lastSectionTitle = null;
+                    stepsContainer.innerHTML = steps.map((step, index) => {
+                        let sectionHTML = '';
+                        // Check if a new section starts
+                        if (step.section_title && step.section_title !== lastSectionTitle) {
+                            sectionHTML = `<h2 class="text-3xl md:text-4xl font-bold tracking-tight text-center text-white mb-8 fade-in-up">${step.section_title}</h2>`;
+                            lastSectionTitle = step.section_title;
                         }
-                        acc[section].push(step);
-                        return acc;
-                    }, {});
 
-                    stepsContainer.innerHTML = Object.entries(groupedSteps).map(([sectionTitle, sectionSteps], sectionIndex) => {
-                        // Render section title if it's not the placeholder
-                        const sectionTitleHTML = sectionTitle !== 'default_section' 
-                            ? `<h2 class="text-3xl md:text-4xl font-bold tracking-tight text-center text-white mb-8 fade-in-up" style="transition-delay: ${sectionIndex * 150}ms;">${sectionTitle}</h2>`
-                            : '';
+                        const hasImage = !!step.image_url;
+                        const isReversed = index % 2 !== 0;
+
+                        const textContent = `
+                            <div class="flex items-start gap-4 relative z-10">
+                                <div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${step.display_order + 1}</div>
+                                <div class="flex-1 pt-1.5">
+                                    <h3 class="text-xl font-bold text-white">${step.title || ''}</h3>
+                                    <p class="mt-2 text-gray-400">${step.description || ''}</p>
+                                </div>
+                            </div>`;
                         
-                        const stepsHTML = `<div class="steps-timeline space-y-8 lg:space-y-16">` + sectionSteps.map((step, stepIndex) => {
-                            const hasImage = !!step.image_url;
-                            const isReversed = stepIndex % 2 !== 0;
-
-                            const textContent = `
-                                <div class="flex items-start gap-4">
-                                    <div class="step-number flex items-center justify-center rounded-full font-bold text-gray-300">${step.display_order + 1}</div>
-                                    <div class="flex-1 pt-1.5">
-                                        <h3 class="text-xl font-bold text-white">${step.title || ''}</h3>
-                                        <p class="mt-2 text-gray-400">${step.description || ''}</p>
+                        let stepHTML;
+                        if (hasImage) {
+                            stepHTML = `
+                                <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-center fade-in-up">
+                                    <div class="${isReversed ? 'lg:order-2' : ''}">${textContent}</div>
+                                    <div class="flex items-center justify-center p-4 ${isReversed ? 'lg:order-1' : ''} mt-4 lg:mt-0">
+                                        <img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800">
                                     </div>
-                                </div>`;
-                            
-                            if (hasImage) {
-                                return `
-                                    <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-center fade-in-up" style="transition-delay: ${stepIndex * 100}ms;">
-                                        <div class="${isReversed ? 'lg:order-2' : ''}">${textContent}</div>
-                                        <div class="flex items-center justify-center p-4 ${isReversed ? 'lg:order-1' : ''} mt-4 lg:mt-0">
-                                            <img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800">
-                                        </div>
-                                    </div>
-                                `;
-                            } else {
-                                // Render full-width text if no image
-                                return `<div class="fade-in-up" style="transition-delay: ${stepIndex * 100}ms;">${textContent}</div>`;
-                            }
-                        }).join('') + `</div>`;
+                                </div>
+                            `;
+                        } else {
+                            // Render full-width text if no image
+                            stepHTML = `<div class="w-full fade-in-up">${textContent}</div>`;
+                        }
+                        
+                        // Add a timeline connector if it's not the last step
+                        const connectorHTML = index < steps.length - 1 ? '<div class="h-8 lg:h-16 relative"><div class="steps-timeline absolute inset-0"></div></div>' : '';
+                        
+                        return sectionHTML + stepHTML + connectorHTML;
 
-                        return sectionTitleHTML + stepsHTML;
                     }).join('');
 
                 } else {
