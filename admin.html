@@ -809,11 +809,21 @@
                 const stepPayloads = [];
                 for (const [index, row] of Array.from(stepRows).entries()) {
                     const stepId = row.dataset.id;
-                    let imageUrl = row.querySelector('.step-image-preview').src;
                     const imageFile = newHowToBuyStepFiles.get(stepId);
-
+                    let imageUrl = null;
+                    
                     if (imageFile) {
                         imageUrl = await uploadImage(imageFile, 'how-to-buy-steps');
+                    } else {
+                        const placeholder = row.querySelector('.step-image-placeholder');
+                        // Only use existing URL if placeholder is hidden (i.e., image was not deleted)
+                        if (placeholder.classList.contains('hidden')) {
+                            const previewSrc = row.querySelector('.step-image-preview').src;
+                            // Ensure it's a real URL, not the current page's URL
+                            if (previewSrc && !previewSrc.endsWith('/admin.html')) {
+                                imageUrl = previewSrc;
+                            }
+                        }
                     }
                     
                     const record = {
