@@ -338,7 +338,10 @@
                         <td class="p-4">${discountFactorText}</td>
                         <td class="p-4"><label class="toggle-switch"><input type="checkbox" class="discount-toggle" data-id="${p.id}" ${p.discount_is_active ? 'checked' : ''}><span class="toggle-slider"></span></label></td>
                         <td class="p-4">${expiryDate}</td>
-                        <td class="p-4 text-right"><button data-id="${p.id}" class="edit-product-btn p-2 hover:bg-gray-800 rounded-full"><i data-lucide="edit-2" class="h-4 w-4 text-text-secondary"></i></button></td>
+                        <td class="p-4 text-right">
+                            <button data-id="${p.id}" class="edit-product-btn p-2 hover:bg-gray-800 rounded-full"><i data-lucide="edit-2" class="h-4 w-4 text-text-secondary"></i></button>
+                            <button data-id="${p.id}" class="delete-product-btn p-2 hover:bg-red-900/50 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>
+                        </td>
                     </tr>`;
             }).join('');
 
@@ -820,7 +823,7 @@
                         if (placeholder.classList.contains('hidden')) {
                             const previewSrc = row.querySelector('.step-image-preview').src;
                             // Ensure it's a real URL, not the current page's URL
-                            if (previewSrc && !previewSrc.endsWith('/admin.html')) {
+                            if (previewSrc && !previewSrc.endsWith('/admin.html')  && !previewSrc.startsWith('blob:')) {
                                 imageUrl = previewSrc;
                             }
                         }
@@ -831,7 +834,7 @@
                         section_title: row.querySelector('.step-section-title').value.trim() || null,
                         title: row.querySelector('.step-title').value.trim(),
                         description: row.querySelector('.step-description').value.trim(),
-                        image_url: imageUrl && !imageUrl.startsWith('blob:') ? imageUrl : null
+                        image_url: imageUrl
                     };
 
                     if (!stepId.startsWith('new_')) {
@@ -971,6 +974,22 @@
             });
         }
         
+        async function deleteSingleProduct(productId) {
+            const product = productsCache.find(p => p.id == productId);
+            const productName = product ? product.name : 'this product';
+            if (confirm(`Are you sure you want to remove "${productName}"?`)) {
+                showLoading(true);
+                const { error } = await db.from('products').update({ is_active: false }).eq('id', productId);
+                if (error) {
+                    showAlert('Delete failed: ' + error.message, true);
+                } else {
+                    showAlert('Product removed.');
+                    await loadProducts(); // Refresh the list
+                }
+                showLoading(false);
+            }
+        }
+
         function setupProductEventListeners() {
             document.getElementById('select-all-products').onchange = handleSelectAll;
             document.getElementById('bulk-delete-btn').onclick = bulkDelete;
@@ -1081,20 +1100,20 @@
             const target = e.target;
             const id = target.closest('[data-id]')?.dataset.id;
             
-            if (target.closest('.dropdown-menu[data-type="brand"] .dropdown-item')) {
+            if (target.closest('.edit-product-btn')) {
+                openEditModal(id);
+            } else if (target.closest('.delete-product-btn')) {
+                deleteSingleProduct(id);
+            } else if (target.closest('.dropdown-menu[data-type="brand"] .dropdown-item')) {
                  const brandId = target.closest('.dropdown-item').dataset.brandId;
                  target.closest('.custom-dropdown').querySelector('.dropdown-trigger').textContent = target.textContent;
                  updateProductField(id, 'brand_id', brandId);
                  target.closest('.dropdown-menu').classList.remove('active');
                  return;
-            }
-
-            if (target.closest('.dropdown-menu[data-type="category"]') || target.closest('.dropdown-menu[data-type="tags"]')) {
+            } else if (target.closest('.dropdown-menu[data-type="category"]') || target.closest('.dropdown-menu[data-type="tags"]')) {
                 e.stopPropagation(); // Keep menu open
                 return;
             }
-            
-            if (target.closest('.edit-product-btn')) openEditModal(id);
         }
         
         function updateBulkActionBar() {
@@ -1112,7 +1131,7 @@
         async function bulkDelete() {
             const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
             if (selectedIds.length === 0) return showAlert('Please select products to delete.', true);
-            if (confirm(`Are you sure you want to delete ${selectedIds.length} selected products? This action is irreversible.`)) {
+            if (confirm(`Are you sure you want to remove ${selectedIds.length} selected products?`)) {
                 showLoading(true);
                 await db.from('products').update({ is_active: false }).in('id', selectedIds);
                 await loadProducts();
