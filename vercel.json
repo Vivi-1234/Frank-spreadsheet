@@ -5,6 +5,10 @@
       "destination": "/admin.html"
     },
     {
+      "source": "/how-to-buy",
+      "destination": "/how-to-buy.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
