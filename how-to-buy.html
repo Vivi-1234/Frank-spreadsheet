@@ -12,6 +12,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root { --header-height: 64px; }
+        html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 60px); }
         body { font-family: 'Inter', sans-serif; background-color: #0D0D0D; color: #F9FAFB; }
         body::before { content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1533134486753-c833f0ed4866?q=80&w=2940&auto=format&fit=crop'); background-size: cover; background-position: center center; opacity: 0.1; z-index: -1; }
         .header { background-color: rgba(13, 13, 13, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
@@ -33,12 +35,15 @@
         .btn-primary:hover { background-color: #D1D5DB; }
         .btn-secondary { background-color: transparent; color: #F9FAFB; border: 1px solid rgba(255, 255, 255, 0.3); }
         .btn-secondary:hover { background-color: rgba(255, 255, 255, 0.1); }
+        #sticky-step-nav { position: sticky; top: var(--header-height); z-index: 20; background-color: rgba(13, 13, 13, 0.8); backdrop-filter: blur(10px); }
+        .step-nav-link { color: #9CA3AF; transition: color 0.2s ease-in-out; }
+        .step-nav-link.active, .step-nav-link:hover { color: #FFFFFF; }
         @media (min-width: 1024px) { .steps-timeline::before { display: block; } }
     </style>
 </head>
 <body class="antialiased">
     <div id="social-sidebar" class="fixed right-4 top-1/2 -translate-y-1/2 z-40 flex-col items-center space-y-4 hidden md:flex"></div>
-    <header class="header sticky top-0 z-30">
+    <header id="main-header" class="header sticky top-0 z-30">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <a href="/" class="text-base sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
@@ -52,8 +57,14 @@
         <button id="close-mobile-menu-btn" class="absolute top-4 right-4 p-2"><i data-lucide="x" class="h-6 w-6"></i></button>
         <nav id="mobile-nav-content" class="mt-12 flex flex-col space-y-4"></nav>
     </div>
+
+    <nav id="sticky-step-nav" class="border-b border-gray-800 shadow-md hidden">
+        <div id="step-nav-container" class="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-center items-center space-x-6 md:space-x-8 h-14 overflow-x-auto whitespace-nowrap">
+            </div>
+    </nav>
+    
     <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        <section class="text-center py-12 md:py-16 fade-in-up">
+        <section class="text-center pt-0 pb-12 md:pb-16 fade-in-up">
             <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">How to buy</h1>
             <p class="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-400">Follow these simple steps to get the best products sourced and shipped directly to you.</p>
             <div id="hero-buttons" class="mt-8 flex items-center justify-center gap-4 hidden">
@@ -61,6 +72,19 @@
                 <a href="#steps-section" class="btn btn-secondary">View Steps</a>
             </div>
         </section>
+
+        <section id="discount-section" class="my-12 fade-in-up">
+            <div id="discount-code-box" class="max-w-4xl mx-auto p-6 border-2 border-dashed border-gray-700 rounded-lg text-center cursor-pointer hover:border-gray-400 transition-all duration-300 bg-gray-900/50">
+                <div class="flex items-center justify-center gap-4">
+                    <i data-lucide="copy" class="h-6 w-6 text-gray-400"></i>
+                    <div>
+                        <p class="font-bold text-lg text-white">15% OFF Shipping Discount Code: Frank</p>
+                        <p class="text-sm text-gray-500">Click to copy the code</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="video-section" class="my-12 md:my-16 fade-in-up hidden">
             <div class="max-w-4xl mx-auto">
                 <div class="aspect-video bg-black rounded-lg overflow-hidden shadow-2xl border border-gray-800">
@@ -68,11 +92,13 @@
                 </div>
             </div>
         </section>
+
         <section id="steps-section" class="mt-12 md:mt-16">
             <div id="steps-container" class="max-w-4xl mx-auto space-y-12">
                 </div>
         </section>
     </main>
+
     <footer class="mt-20 md:mt-28 border-t border-gray-800">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="text-center">
@@ -137,17 +163,22 @@
                     }
                 }
 
-                // --- Tutorial Steps ---
+                // --- Tutorial Steps & Sticky Nav ---
                 const stepsContainer = document.getElementById('steps-container');
+                const stepNavContainer = document.getElementById('step-nav-container');
+                const stickyNav = document.getElementById('sticky-step-nav');
+
                 if (steps && steps.length > 0) {
-                    // Group steps by section_title
                     let lastSectionTitle = null;
+                    const sectionTitles = [];
+
                     stepsContainer.innerHTML = steps.map((step, index) => {
                         let sectionHTML = '';
-                        // Check if a new section starts
                         if (step.section_title && step.section_title !== lastSectionTitle) {
-                            sectionHTML = `<h2 class="text-3xl md:text-4xl font-bold tracking-tight text-center text-white mb-8 fade-in-up">${step.section_title}</h2>`;
+                            const sectionId = `step-section-${step.section_title.replace(/\s+/g, '-').toLowerCase()}`;
+                            sectionHTML = `<h2 id="${sectionId}" class="section-title text-3xl md:text-4xl font-bold tracking-tight text-center text-white mb-8 fade-in-up">${step.section_title}</h2>`;
                             lastSectionTitle = step.section_title;
+                            sectionTitles.push({ title: step.section_title, id: sectionId });
                         }
 
                         const hasImage = !!step.image_url;
@@ -164,25 +195,20 @@
                         
                         let stepHTML;
                         if (hasImage) {
-                            stepHTML = `
-                                <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-center fade-in-up">
-                                    <div class="${isReversed ? 'lg:order-2' : ''}">${textContent}</div>
-                                    <div class="flex items-center justify-center p-4 ${isReversed ? 'lg:order-1' : ''} mt-4 lg:mt-0">
-                                        <img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800">
-                                    </div>
-                                </div>
-                            `;
+                            stepHTML = `<div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-12 items-center fade-in-up">${isReversed ? `<div class="flex items-center justify-center p-4 mt-4 lg:mt-0 lg:order-1"><img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800"></div><div class="lg:order-2">${textContent}</div>` : `<div>${textContent}</div><div class="flex items-center justify-center p-4 mt-4 lg:mt-0"><img src="${step.image_url}" alt="${step.title || 'Step image'}" class="rounded-lg shadow-lg w-full h-auto object-cover border border-gray-800"></div>`}</div>`;
                         } else {
-                            // Render full-width text if no image
                             stepHTML = `<div class="w-full fade-in-up">${textContent}</div>`;
                         }
                         
-                        // Add a timeline connector if it's not the last step
                         const connectorHTML = index < steps.length - 1 ? '<div class="h-8 lg:h-16 relative"><div class="steps-timeline absolute inset-0"></div></div>' : '';
                         
                         return sectionHTML + stepHTML + connectorHTML;
-
                     }).join('');
+
+                    if (sectionTitles.length > 1) {
+                        stickyNav.classList.remove('hidden');
+                        stepNavContainer.innerHTML = sectionTitles.map(s => `<a href="#${s.id}" class="step-nav-link font-medium text-sm md:text-base">${s.title}</a>`).join('');
+                    }
 
                 } else {
                     stepsContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Steps are being configured. Please check back later.</p>';
@@ -211,7 +237,9 @@
                 setupAnimations();
             }
         }
+
         function setupEventListeners() {
+            // Mobile Menu
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
             const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
@@ -223,7 +251,43 @@
             mobileMenuBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMobileMenu(true); });
             closeMobileMenuBtn.addEventListener('click', () => toggleMobileMenu(false));
             mobileMenuOverlay.addEventListener('click', () => toggleMobileMenu(false));
+
+            // Discount Code Copy
+            const discountBox = document.getElementById('discount-code-box');
+            discountBox.addEventListener('click', () => {
+                navigator.clipboard.writeText('Frank').then(() => {
+                    const originalContent = discountBox.innerHTML;
+                    discountBox.innerHTML = `
+                        <div class="flex items-center justify-center gap-4 text-green-400">
+                            <i data-lucide="check-circle" class="h-6 w-6"></i>
+                            <p class="font-bold text-lg">Copied!</p>
+                        </div>`;
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        discountBox.innerHTML = originalContent;
+                        lucide.createIcons();
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            });
+
+            // Sticky Nav Active State
+            const sectionTitles = document.querySelectorAll('.section-title');
+            const navLinks = document.querySelectorAll('.step-nav-link');
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').slice(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: "-50% 0px -50% 0px" });
+
+            sectionTitles.forEach(title => observer.observe(title));
         }
+
         function setupAnimations() {
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
@@ -235,6 +299,7 @@
             }, { threshold: 0.15 });
             document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
         }
+
         document.addEventListener('DOMContentLoaded', initializePage);
     </script>
 </body>
