@@ -129,21 +129,22 @@
         }
         .timer-box {
             text-align: center;
+            flex-shrink: 0;
         }
         .timer-value {
-            font-size: 1.5rem; /* 24px */
-            line-height: 2rem; /* 32px */
+            font-size: 1.5rem;
+            line-height: 1.75rem;
             font-weight: 700;
         }
         .timer-label {
-            font-size: 0.75rem; /* 12px */
+            font-size: 0.625rem; /* 10px */
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.05em;
             color: #9CA3AF;
         }
         @media (min-width: 640px) {
             .timer-value { font-size: 2.25rem; line-height: 1; }
-            .timer-label { margin-top: 0.25rem; }
+            .timer-label { font-size: 0.75rem; margin-top: 0.25rem; letter-spacing: 0.1em;}
         }
         .product-title {
             height: 3rem; /* for 2 lines */
@@ -192,7 +193,7 @@
     <header class="header sticky top-0 z-30">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="/" class="text-base sm:text-xl font-bold tracking-tighter">Franks AUTHENTIC Spreadsheet</a>
+                <a href="/" class="text-base sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
                 <nav id="main-nav" class="hidden md:flex items-center space-x-4 md:space-x-8"></nav>
                 <div class="md:hidden">
                     <button id="mobile-menu-btn" class="p-2">
@@ -238,7 +239,7 @@
                         <h2 class="text-3xl md:text-4xl font-bold tracking-tight">Flash Sale</h2>
                         <p class="mt-1 text-gray-400">Ending In:</p>
                     </div>
-                    <div id="countdown-timer" class="flex gap-4 sm:gap-6 flex-wrap justify-center"></div>
+                    <div id="countdown-timer" class="flex items-baseline justify-center gap-3 sm:gap-6 flex-nowrap"></div>
                 </div>
                 <div id="flash-sale-product-list" class="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"></div>
             </div>
@@ -418,8 +419,8 @@
                 const mainNavContainer = document.getElementById('main-nav');
                 const mobileNavContent = document.getElementById('mobile-nav-content');
                 if (mainNavContainer && mobileNavContent) {
-                    const homeLinkHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a>`;
-                    const tagLinksHTML = tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
+                    const homeLinkHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium">Home</a>`;
+                    const tagLinksHTML = tags.map(tag => `<a href="#product-section" class="nav-link text-lg md:text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
                     
                     // Desktop Navigation
                     mainNavContainer.innerHTML = homeLinkHTML + tags.map(tag => `<a href="#product-section" class="nav-link text-sm font-medium tag-link" data-tag="${tag.name}">${tag.name}</a>`).join('');
@@ -427,7 +428,6 @@
                     // Mobile Navigation
                     mobileNavContent.innerHTML = homeLinkHTML + tagLinksHTML;
                 }
-
 
                 // Render Social Icons
                 const socialSidebar = document.getElementById('social-sidebar');
