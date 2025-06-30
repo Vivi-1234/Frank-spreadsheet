@@ -359,8 +359,10 @@
             setupProductEventListeners();
             
             if (shouldPreserveScroll) {
-                mainContent.scrollTop = scrollPosition;
-                shouldPreserveScroll = false; // Reset the flag
+                requestAnimationFrame(() => {
+                    mainContent.scrollTop = scrollPosition;
+                    shouldPreserveScroll = false; // Reset the flag
+                });
             }
         }
         
