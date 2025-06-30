@@ -123,7 +123,7 @@
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
         let howToBuySettingsCache = null;
-        
+
         // --- DOM Elements ---
         const authScreen = document.getElementById('auth-screen');
         const adminPanel = document.getElementById('admin-panel');
@@ -740,6 +740,7 @@
         async function submitAllNewProducts() {
             const forms = document.querySelectorAll('.add-form-row');
             if (forms.length === 0) return showAlert('No products to add.');
+            const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const { count } = await db.from('products').select('*', { count: 'exact', head: true });
             let currentOrder = count || 0;
@@ -764,7 +765,7 @@
                 document.getElementById('add-product-forms-container').innerHTML = '';
                 newProductFiles.clear();
                 addProductFormRow();
-                await loadProducts({ scrollPosition: mainContent.scrollHeight });
+                await loadProducts({ scrollPosition });
             }
         }
         
