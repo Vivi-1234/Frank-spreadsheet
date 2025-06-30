@@ -401,7 +401,6 @@
             
             paginationHTML += `<button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
 
-            // Logic to show a limited number of page buttons
             const maxPagesToShow = 5;
             let startPage, endPage;
             if (totalPages <= maxPagesToShow) {
@@ -435,7 +434,6 @@
                 if (endPage < totalPages - 1) paginationHTML += `<span class="px-2">...</span>`;
                 paginationHTML += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
             }
-
 
             paginationHTML += `<button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
             
@@ -570,13 +568,9 @@
                     categoryFilterContainer.innerHTML = filterHTML;
                 }
                 
-                const urlParams = new URLSearchParams(window.location.search);
-                currentTagFilter = urlParams.get('tag') || 'all';
-                currentPage = parseInt(urlParams.get('page') || '1');
-                currentCategoryFilter = 'all'; 
-
+                initializeFilters();
                 updateActiveUI();
-                fetchProductsPage(currentPage, { shouldScroll: urlParams.has('page') }); 
+                fetchProductsPage(currentPage, { shouldScroll: new URLSearchParams(window.location.search).has('page') }); 
 
             } catch (error) {
                 console.error('Error loading initial data:', error);
@@ -586,6 +580,13 @@
             lucide.createIcons();
             setupEventListeners();
             setupAnimations();
+        }
+
+        function initializeFilters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentTagFilter = urlParams.get('tag') || 'all';
+            currentPage = parseInt(urlParams.get('page') || '1');
+            currentCategoryFilter = 'all'; // Always start with all categories for a given tag filter
         }
 
         function updateActiveUI() {
@@ -617,38 +618,57 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    if(currentCategoryFilter !== 'all') {
-                        currentTagFilter = 'all'; // Clicking a category resets the tag filter
-                    }
+                    // ** FIX **: Do NOT reset the tag filter.
+                    // The fetch will now combine the current tag and the new category.
                     fetchProductsPage(1, { shouldScroll: true }); 
-                    updateURL();
                     updateActiveUI();
                 }
             });
             
             const handleTagClick = (tag) => {
                 currentTagFilter = tag;
-                currentCategoryFilter = 'all';
+                currentCategoryFilter = 'all'; // Clicking a nav tag RESETS the category filter.
                 fetchProductsPage(1, { shouldScroll: true }); 
-                updateURL();
                 updateActiveUI();
             };
 
-            document.getElementById('main-nav')?.addEventListener('click', e => {
+            const mainNav = document.getElementById('main-nav');
+            mainNav?.addEventListener('click', e => {
                 const link = e.target.closest('a.nav-link');
                 if (!link) return;
+                
                 const url = new URL(link.href, window.location.origin);
                 const tag = url.searchParams.get('tag');
 
                 if (link.getAttribute('href').startsWith('/?tag=')) {
                     e.preventDefault();
+                    history.pushState({tag}, '', url.search);
                     handleTagClick(tag);
                 } else if (link.getAttribute('href') === '/') {
                     e.preventDefault();
+                    history.pushState({}, '', '/');
                     handleTagClick('all');
                 }
             });
             
+            const mobileNav = document.getElementById('mobile-nav-content');
+            mobileNav?.addEventListener('click', e => {
+                 const link = e.target.closest('a.nav-link');
+                 if (!link) return;
+                 const url = new URL(link.href, window.location.origin);
+                 const tag = url.searchParams.get('tag');
+
+                if (link.getAttribute('href').startsWith('/?tag=')) {
+                    e.preventDefault();
+                    handleTagClick(tag);
+                    toggleMobileMenu(false);
+                } else if (link.getAttribute('href') === '/') {
+                    e.preventDefault();
+                    handleTagClick('all');
+                    toggleMobileMenu(false);
+                }
+            });
+
             document.getElementById('pagination-container').addEventListener('click', e => {
                 const button = e.target.closest('.pagination-btn');
                 if (button && !button.disabled) {
