@@ -23,7 +23,6 @@
             --accent-hover: #DDDDDD; --text-primary: #FFFFFF; --text-secondary: #AAAAAA;
             --danger-color: #EF4444; --text-on-accent: #000000;
         }
-        /* 确保没有全局的平滑滚动，以允许JS即时滚动 */
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); }
         .panel { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.75rem; }
         aside { background-color: #000000; border-right: 1px solid var(--border-color); transition: transform 0.3s ease-in-out; }
@@ -290,8 +289,7 @@
             await loadProducts();
         }
         
-        async function loadProducts(options = {}) {
-            const { scrollPosition } = options;
+        async function loadProducts() {
             const productListEl = document.getElementById('product-list');
             if (!productListEl) return;
             
@@ -308,57 +306,61 @@
             productsCache = productsRes.data || [];
             navCache = navRes.data || [];
             tagsCache = tagsRes.data || [];
+            
+            renderProductList(productsCache);
+        }
+
+        function renderProductList(products) {
+            const productListEl = document.getElementById('product-list');
+            if (!productListEl) return;
+            
             const categories = navCache.filter(item => item.link_text.toLowerCase() !== 'home').map(item => item.link_text);
 
-            if(productsCache.length === 0) {
+            if(products.length === 0) {
                 productListEl.innerHTML = '<tr><td colspan="11" class="text-center p-8 text-text-secondary">No products found. Add one above!</td></tr>';
                 return;
             }
 
-            productListEl.innerHTML = productsCache.map(p => {
-                const selectedCategories = p.category ? p.category.split(',').map(cat => cat.trim()) : [];
-                const selectedTags = p.tags ? p.tags.split(',').map(tag => tag.trim()) : [];
-
-                const categoryDropdownItems = categories.map(cat => `<label class="dropdown-item"><input type="checkbox" value="${cat}" ${selectedCategories.includes(cat) ? 'checked' : ''}><span>${cat}</span></label>`).join('');
-                const tagsDropdownItems = tagsCache.map(tag => `<label class="dropdown-item"><input type="checkbox" value="${tag.name}" ${selectedTags.includes(tag.name) ? 'checked' : ''}><span>${tag.name}</span></label>`).join('');
-
-                const categoryDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="category" data-id="${p.id}">${selectedCategories.join(', ') || 'Select Category'}</div><div class="dropdown-menu" data-type="category" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${categoryDropdownItems}</div></div></div>`;
-                const tagsDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="tags" data-id="${p.id}">${selectedTags.join(', ') || 'Select Tags'}</div><div class="dropdown-menu" data-type="tags" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${tagsDropdownItems}</div></div></div>`;
-
-                const expiryDate = p.discount_expires_at ? new Date(p.discount_expires_at).toLocaleDateString('en-US') : '—';
-                const discountFactorText = p.discount_factor ? `${Math.round((1 - p.discount_factor) * 100)}% off` : '—';
-                
-                return `
-                    <tr class="product-row" data-id="${p.id}">
-                        <td class="p-4"><input type="checkbox" class="product-checkbox rounded border-gray-600 bg-gray-800 text-white focus:ring-white" data-id="${p.id}"></td>
-                        <td class="p-4"><i data-lucide="grip-vertical" class="cursor-move text-gray-500"></i></td>
-                        <td class="p-4"><div class="flex items-center gap-3"><img src="${p.image_url || 'https://placehold.co/40x40/111111/AAAAAA?text=??'}" class="w-10 h-10 object-cover rounded"><span class="font-semibold">${p.name}</span></div></td>
-                        <td class="p-4">${categoryDropdown}</td>
-                        <td class="p-4">${tagsDropdown}</td>
-                        <td class="p-4 font-medium">¥${p.price}</td>
-                        <td class="p-4"><div class="truncate max-w-[15ch]">${p.target_url || '—'}</div></td>
-                        <td class="p-4">${discountFactorText}</td>
-                        <td class="p-4"><label class="toggle-switch"><input type="checkbox" class="discount-toggle" data-id="${p.id}" ${p.discount_is_active ? 'checked' : ''}><span class="toggle-slider"></span></label></td>
-                        <td class="p-4">${expiryDate}</td>
-                        <td class="p-4 text-right">
-                            <button data-id="${p.id}" class="edit-product-btn p-2 hover:bg-gray-800 rounded-full"><i data-lucide="edit-2" class="h-4 w-4 text-text-secondary"></i></button>
-                            <button data-id="${p.id}" class="delete-product-btn p-2 hover:bg-red-900/50 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>
-                        </td>
-                    </tr>`;
+            productListEl.innerHTML = products.map(p => {
+                return generateProductRowHtml(p, categories, tagsCache);
             }).join('');
-
+            
             lucide.createIcons();
             if (sortableInstance) sortableInstance.destroy();
             sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
+        }
+
+        function generateProductRowHtml(p, categories, allTags) {
+            const selectedCategories = p.category ? p.category.split(',').map(cat => cat.trim()) : [];
+            const selectedTags = p.tags ? p.tags.split(',').map(tag => tag.trim()) : [];
+
+            const categoryDropdownItems = categories.map(cat => `<label class="dropdown-item"><input type="checkbox" value="${cat}" ${selectedCategories.includes(cat) ? 'checked' : ''}><span>${cat}</span></label>`).join('');
+            const tagsDropdownItems = allTags.map(tag => `<label class="dropdown-item"><input type="checkbox" value="${tag.name}" ${selectedTags.includes(tag.name) ? 'checked' : ''}><span>${tag.name}</span></label>`).join('');
+
+            const categoryDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="category" data-id="${p.id}">${selectedCategories.join(', ') || 'Select Category'}</div><div class="dropdown-menu" data-type="category" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${categoryDropdownItems}</div></div></div>`;
+            const tagsDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="tags" data-id="${p.id}">${selectedTags.join(', ') || 'Select Tags'}</div><div class="dropdown-menu" data-type="tags" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${tagsDropdownItems}</div></div></div>`;
+
+            const expiryDate = p.discount_expires_at ? new Date(p.discount_expires_at).toLocaleDateString('en-US') : '—';
+            const discountFactorText = p.discount_factor ? `${Math.round((1 - p.discount_factor) * 100)}% off` : '—';
             
-            // ***** 最终解决方案 *****
-            if (scrollPosition !== undefined) {
-                // 使用 setTimeout 推迟滚动操作，确保DOM已完全渲染。
-                setTimeout(() => {
-                    mainContent.scrollTop = scrollPosition;
-                }, 0);
-            }
+            return `
+                <tr class="product-row" data-id="${p.id}">
+                    <td class="p-4"><input type="checkbox" class="product-checkbox rounded border-gray-600 bg-gray-800 text-white focus:ring-white" data-id="${p.id}"></td>
+                    <td class="p-4"><i data-lucide="grip-vertical" class="cursor-move text-gray-500"></i></td>
+                    <td class="p-4"><div class="flex items-center gap-3"><img src="${p.image_url || 'https://placehold.co/40x40/111111/AAAAAA?text=??'}" class="w-10 h-10 object-cover rounded"><span class="font-semibold">${p.name}</span></div></td>
+                    <td class="p-4">${categoryDropdown}</td>
+                    <td class="p-4">${tagsDropdown}</td>
+                    <td class="p-4 font-medium">¥${p.price}</td>
+                    <td class="p-4"><div class="truncate max-w-[15ch]">${p.target_url || '—'}</div></td>
+                    <td class="p-4">${discountFactorText}</td>
+                    <td class="p-4"><label class="toggle-switch"><input type="checkbox" class="discount-toggle" data-id="${p.id}" ${p.discount_is_active ? 'checked' : ''}><span class="toggle-slider"></span></label></td>
+                    <td class="p-4">${expiryDate}</td>
+                    <td class="p-4 text-right">
+                        <button data-id="${p.id}" class="edit-product-btn p-2 hover:bg-gray-800 rounded-full"><i data-lucide="edit-2" class="h-4 w-4 text-text-secondary"></i></button>
+                        <button data-id="${p.id}" class="delete-product-btn p-2 hover:bg-red-900/50 rounded-full"><i data-lucide="trash-2" class="h-4 w-4 text-danger-color"></i></button>
+                    </td>
+                </tr>`;
         }
         
         async function loadFlashSaleData() {
@@ -742,9 +744,6 @@
         async function submitAllNewProducts() {
             const forms = document.querySelectorAll('.add-form-row');
             if (forms.length === 0) return showAlert('No products to add.');
-            
-            const scrollPosition = mainContent.scrollTop;
-            
             showLoading(true);
             const { count } = await db.from('products').select('*', { count: 'exact', head: true });
             let currentOrder = count || 0;
@@ -769,17 +768,19 @@
                 document.getElementById('add-product-forms-container').innerHTML = '';
                 newProductFiles.clear();
                 addProductFormRow();
-                await loadProducts({ scrollPosition });
+                await loadProducts();
             }
         }
         
         async function saveProductChanges() {
-            const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const button = document.getElementById('save-product-changes-btn');
             button.disabled = true;
+
             let uploadedImageUrl = currentEditImageUrl;
-            if (currentEditFile) uploadedImageUrl = await uploadImage(currentEditFile);
+            if (currentEditFile) {
+                uploadedImageUrl = await uploadImage(currentEditFile);
+            }
             
             const productId = document.getElementById('edit-product-id').value;
             const price = parseFloat(document.getElementById('edit-product-price').value);
@@ -787,7 +788,6 @@
             const selectedTags = Array.from(document.querySelectorAll('#edit-tags-list input:checked')).map(cb => cb.value).join(',');
 
             const updates = {
-                id: productId,
                 name: document.getElementById('edit-product-name').value,
                 price: price,
                 target_url: document.getElementById('edit-product-target-url').value,
@@ -798,49 +798,64 @@
                 discount_expires_at: document.getElementById('edit-product-discount-expires').value ? new Date(document.getElementById('edit-product-discount-expires').value).toISOString() : null,
                 image_url: uploadedImageUrl
             };
-            const { error } = await db.from('products').update(updates).eq('id', productId);
+
+            const { data: updatedProduct, error } = await db.from('products').update(updates).eq('id', productId).select().single();
+            
             showLoading(false);
+            button.disabled = false;
+
             if (error) { 
                 showAlert('Save failed: ' + error.message, true);
-            } else { 
+            } else {
                 modal.classList.add('hidden'); 
-                currentEditFile = null; 
-                await loadProducts({ scrollPosition }); 
+                currentEditFile = null;
+                
+                const index = productsCache.findIndex(p => p.id == productId);
+                if (index !== -1) {
+                    productsCache[index] = updatedProduct;
+                }
+
+                const rowToUpdate = document.querySelector(`.product-row[data-id="${productId}"]`);
+                if (rowToUpdate) {
+                    const categories = navCache.filter(item => item.link_text.toLowerCase() !== 'home').map(item => item.link_text);
+                    const updatedRowHtml = generateProductRowHtml(updatedProduct, categories, tagsCache);
+                    rowToUpdate.outerHTML = updatedRowHtml;
+                    lucide.createIcons();
+                }
+                
                 showAlert('Product updated!'); 
             }
-            button.disabled = false;
         }
 
         async function saveProductOrder(evt) {
-            const scrollPosition = mainContent.scrollTop;
+            showLoading(true);
             const reorderedIds = Array.from(evt.to.children).map(item => parseInt(item.dataset.id));
-            const updatePromises = reorderedIds.map((id, index) =>
+            
+            const updates = reorderedIds.map((id, index) => 
                 db.from('products').update({ display_order: index }).eq('id', id)
             );
-            
-            showLoading(true);
+
             try {
-                const results = await Promise.all(updatePromises);
-                const firstError = results.find(res => res.error);
-                if (firstError) throw firstError.error;
-            }
-            catch (error) {
-                showAlert('Reorder failed: ' + error.message, true);
-            }
-            finally {
-                await loadProducts({ scrollPosition });
+                const results = await Promise.all(updates);
+                const firstErrorResult = results.find(res => res.error);
+                if (firstErrorResult) throw firstErrorResult.error;
+                
+                showAlert('排序已保存!');
+            } catch (error) {
+                showAlert('排序保存失败，正在刷新列表以恢复: ' + error.message, true);
+                await loadProducts();
+            } finally {
                 showLoading(false);
             }
         }
 
         async function updateProductField(productId, field, value) {
-            const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const { error } = await db.from('products').update({ [field]: value }).eq('id', productId);
             showLoading(false);
             if (error) {
                 showAlert('Update failed: ' + error.message, true);
-                await loadProducts({ scrollPosition }); 
+                await loadProducts();
             } else { 
                 const product = productsCache.find(p => p.id == productId); 
                 if(product) product[field] = value; 
@@ -1063,16 +1078,20 @@
             const product = productsCache.find(p => p.id == productId);
             const productName = product ? product.name : 'this product';
             if (confirm(`Are you sure you want to remove "${productName}"?`)) {
-                const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).eq('id', productId);
+                
+                showLoading(false);
                 if (error) {
                     showAlert('Delete failed: ' + error.message, true);
                 } else {
                     showAlert('Product removed.');
-                    await loadProducts({ scrollPosition }); 
+                    const rowToRemove = document.querySelector(`.product-row[data-id="${productId}"]`);
+                    if (rowToRemove) {
+                        rowToRemove.remove();
+                    }
+                    productsCache = productsCache.filter(p => p.id != productId);
                 }
-                showLoading(false);
             }
         }
 
@@ -1190,7 +1209,7 @@
                  target.closest('.dropdown-menu').classList.remove('active');
                  return;
             } else if (target.closest('.dropdown-menu[data-type="category"]') || target.closest('.dropdown-menu[data-type="tags"]')) {
-                e.stopPropagation(); // Keep menu open
+                e.stopPropagation();
                 return;
             }
         }
@@ -1211,12 +1230,21 @@
             const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
             if (selectedIds.length === 0) return showAlert('Please select products to delete.', true);
             if (confirm(`Are you sure you want to remove ${selectedIds.length} selected products?`)) {
-                const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).in('id', selectedIds);
-                if (error) { showAlert('Delete failed: ' + error.message, true); }
-                await loadProducts({ scrollPosition });
                 showLoading(false);
+                if (error) { 
+                    showAlert('Delete failed: ' + error.message, true); 
+                } else {
+                    showAlert(`Successfully removed ${selectedIds.length} products.`);
+                    selectedIds.forEach(id => {
+                        const rowToRemove = document.querySelector(`.product-row[data-id="${id}"]`);
+                        if (rowToRemove) rowToRemove.remove();
+                    });
+                    const idSet = new Set(selectedIds.map(id => parseInt(id)));
+                    productsCache = productsCache.filter(p => !idSet.has(p.id));
+                    updateBulkActionBar();
+                }
             }
         }
         
@@ -1226,12 +1254,11 @@
             const productsToUpdate = productsCache.filter(p => selectedIds.includes(p.id));
             const turnOn = productsToUpdate.some(p => !p.discount_is_active);
             if (confirm(`Are you sure you want to set the discount status to "${turnOn ? 'ON' : 'OFF'}" for ${selectedIds.length} products?`)) {
-                const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 try {
                     const updatePromises = selectedIds.map(id => db.from('products').update({ discount_is_active: turnOn }).eq('id', id));
                     await Promise.all(updatePromises);
-                    await loadProducts({ scrollPosition });
+                    await loadProducts();
                 } catch (error) { showAlert('Bulk update failed: ' + error.message, true);
                 } finally { showLoading(false); }
             }
