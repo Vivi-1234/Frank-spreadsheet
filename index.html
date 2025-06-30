@@ -529,7 +529,7 @@
                     categoryContainer.querySelector('.active')?.classList.remove('active');
                     button.classList.add('active');
                     currentCategoryFilter = button.dataset.category;
-                    currentTagFilter = 'all'; 
+                    currentTagFilter = tagFromUrl || 'all'; // 保留 tagFromUrl，fallback to 'all'
                     document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
                     applyFiltersAndRender();
                 }
