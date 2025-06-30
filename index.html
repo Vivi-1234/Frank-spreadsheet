@@ -309,7 +309,7 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // --- State ---
-        let allProducts = [], currentCategoryFilter = 'all', currentTagFilter = 'all';
+        let currentCategoryFilter = 'all', currentTagFilter = 'all';
         let cnyToUsdRate = 0.14, userCountryCode = null;
         let currentPage = 1;
         const pageSize = 48;
@@ -395,16 +395,12 @@
 
             let paginationHTML = '';
             
-            // Previous button
             paginationHTML += `<button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
 
-            // Page numbers
-            // Simple logic for now, can be improved with ellipses for many pages
             for (let i = 1; i <= totalPages; i++) {
                 paginationHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
             }
 
-            // Next button
             paginationHTML += `<button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
             
             paginationContainer.innerHTML = paginationHTML;
@@ -420,15 +416,17 @@
 
             let query = db.from('products').select('*', { count: 'exact' }).eq('is_active', true);
 
-            // Apply filters
+            // *** FIXED LOGIC ***
             if (currentCategoryFilter !== 'all') {
-                query = query.contains('category', [currentCategoryFilter]);
+                // Use .like() for text search. % is a wildcard.
+                query = query.like('category', `%${currentCategoryFilter}%`);
             }
             if (currentTagFilter !== 'all') {
-                query = query.contains('tags', [currentTagFilter]);
+                 // Use .like() for text search. % is a wildcard.
+                query = query.like('tags', `%${currentTagFilter}%`);
             }
+            // *** END OF FIX ***
 
-            // Apply ordering and range
             query = query.order('display_order').range(from, to);
 
             const { data, error, count } = await query;
@@ -442,7 +440,6 @@
             renderProducts(data);
             renderPagination(count, currentPage);
             
-            // Scroll to top of product section after page change
             const productSection = document.getElementById('product-section');
             if (productSection) {
                  productSection.scrollIntoView({ behavior: 'smooth' });
@@ -464,7 +461,6 @@
                     db.from('flash_sale_settings').select('*').single()
                 ]);
 
-                // This part no longer fetches all products, just site-wide settings
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
@@ -478,7 +474,7 @@
                     if (endTime > new Date()) {
                         document.getElementById('flash-sale-section').classList.remove('hidden');
                         setupCountdown(endTime);
-                        renderProducts(flashSaleProducts);
+                        renderProducts('flash-sale-product-list', flashSaleProducts);
                     }
                 }
 
@@ -570,7 +566,7 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    fetchProductsPage(1); // Go to page 1 of new category
+                    fetchProductsPage(1); 
                     updateActiveUI();
                 }
             });
@@ -578,7 +574,7 @@
             const handleTagClick = (tag) => {
                 currentTagFilter = tag;
                 currentCategoryFilter = 'all';
-                fetchProductsPage(1); // Go to page 1 of new tag
+                fetchProductsPage(1); 
                 updateActiveUI();
             };
 
