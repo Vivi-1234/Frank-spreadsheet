@@ -403,15 +403,19 @@
 
                 if (productsRes.error) {
                     console.error('Products query failed:', productsRes.error);
-                    document.getElementById('product-list-container').innerHTML = `<p class="text-center text-red-500 text-lg p-8">Error loading products. Please try again later.</p>`;
+                    document.getElementById('product-list-container').innerHTML = `<p class="text-center text-red-500 text-lg p-8">Error loading products: ${productsRes.error.message}. Please try again later.</p>`;
                     return;
                 }
 
-                allProducts = productsRes.data.map(p => ({
-                    ...p,
-                    is_active: p.is_active === 'TRUE',
-                    discount_is_active: p.discount_is_active === 'TRUE'
-                })) || [];
+                console.log('Raw products data:', productsRes.data);
+                allProducts = productsRes.data.map(p => {
+                    console.log(`Converting ${p.id}: is_active=${p.is_active} to ${p.is_active === 'TRUE' || p.is_active === 'true' || p.is_active === true}`);
+                    return {
+                        ...p,
+                        is_active: p.is_active === 'TRUE' || p.is_active === 'true' || p.is_active === true,
+                        discount_is_active: p.discount_is_active === 'TRUE' || p.discount_is_active === 'true' || p.discount_is_active === true
+                    };
+                }) || [];
                 console.log('Loaded All Products:', allProducts.map(p => ({ id: p.id, name: p.name, category: p.category, tags: p.tags, is_active: p.is_active })));
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
