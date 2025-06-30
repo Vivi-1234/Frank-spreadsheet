@@ -362,21 +362,19 @@
             console.log('Applying filters - Category:', currentCategoryFilter, 'Tag:', currentTagFilter);
             let filteredProducts = allProducts;
 
+            // Only apply category filter when not 'all'
             if (currentCategoryFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => 
-                    p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter)
+                    p.category && p.category.split(',').map(c => c.trim()).some(c => c === currentCategoryFilter)
                 );
             }
+
+            // Apply tag filter only when not 'all'
             if (currentTagFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => {
                     const tags = p.tags ? p.tags.split(',').map(t => t.trim()) : [];
                     return tags.includes(currentTagFilter);
                 });
-            } else {
-                // When tag filter is 'all', include products with or without tags
-                filteredProducts = filteredProducts.filter(p => 
-                    !currentCategoryFilter || (p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter))
-                );
             }
 
             console.log('Filtered Products:', filteredProducts);
@@ -404,14 +402,13 @@
                 ]);
 
                 allProducts = productsRes.data || [];
+                console.log('Loaded All Products:', allProducts.map(p => ({ id: p.id, name: p.name, category: p.category, tags: p.tags })));
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
                 const socialLinks = socialRes.data;
                 const flashSaleSettings = flashSaleSettingsRes.data;
                 const flashSaleProducts = (flashSaleProductsRes.data || []).map(item => item.products).filter(Boolean);
-
-                console.log('Loaded All Products:', allProducts);
 
                 // Render Flash Sale section if active
                 const flashSaleSection = document.getElementById('flash-sale-section');
@@ -490,9 +487,9 @@
                 } else {
                     currentTagFilter = 'all';
                 }
+                currentCategoryFilter = 'all'; // Ensure initial category is 'all'
+                applyFiltersAndRender(); // Initial render
 
-                // Initial render of products
-                applyFiltersAndRender();
             } catch (error) {
                 console.error('Error in loadAndRender:', error);
                 document.body.innerHTML = '<p class="text-center text-red-500 text-lg p-8">Error loading page content. Please try again later.</p>';
