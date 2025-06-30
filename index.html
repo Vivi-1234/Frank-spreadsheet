@@ -286,12 +286,11 @@
         let allProducts = [], currentCategoryFilter = 'all', currentTagFilter = 'all';
         let cnyToUsdRate = 0.14, userCountryCode = null;
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const refId = urlParams.get('ref');
-        
         // --- Core Logic ---
         
         async function logEvent(eventType, eventValue = null) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refId = urlParams.get('ref');
             try {
                 const { error } = await db.from('analytics_events').insert([{ 
                     event_type: eventType, 
@@ -304,6 +303,8 @@
         }
         
         function appendRefParam(url) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refId = urlParams.get('ref');
             if (!refId || !url) return url;
             try {
                 const urlObj = new URL(url);
@@ -452,18 +453,9 @@
                     categoryFilterContainer.innerHTML = filterHTML;
                 }
                 
-                // Initialize filters based on URL
-                const tagFromUrl = new URLSearchParams(window.location.search).get('tag');
-                if (tagFromUrl) {
-                    currentTagFilter = tagFromUrl;
-                    currentCategoryFilter = 'all'; // When a tag is active, category should be all
-                } else {
-                    currentTagFilter = 'all';
-                    currentCategoryFilter = 'all';
-                }
-
-                updateActiveFilters();
+                initializeFilters();
                 applyFiltersAndRender();
+                updateActiveUI();
 
             } catch (error) {
                 console.error('Error in loadAndRender:', error);
@@ -485,18 +477,35 @@
             setupEventListeners();
         }
         
-        function updateActiveFilters() {
+        function initializeFilters() {
+            const tagFromUrl = new URLSearchParams(window.location.search).get('tag');
+            if (tagFromUrl) {
+                currentTagFilter = tagFromUrl;
+                currentCategoryFilter = 'all';
+            } else {
+                currentTagFilter = 'all';
+                currentCategoryFilter = 'all';
+            }
+        }
+
+        function updateActiveUI() {
             // Update active state for category buttons
             document.querySelectorAll('#category-filter-container .filter-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.category === currentCategoryFilter);
             });
+
             // Update active state for nav links (tags)
             document.querySelectorAll('#main-nav .nav-link, #mobile-nav-content .nav-link').forEach(link => {
-                const linkTag = new URL(link.href).searchParams.get('tag');
-                if (link.href.endsWith('/')) { // Home link
+                const url = new URL(link.href, window.location.origin);
+                const linkTag = url.searchParams.get('tag');
+                
+                // Special case for 'Home' link
+                if (link.getAttribute('href') === '/') {
                     link.classList.toggle('active', currentTagFilter === 'all' && currentCategoryFilter === 'all');
                 } else if (linkTag) {
                     link.classList.toggle('active', linkTag === currentTagFilter);
+                } else {
+                     link.classList.remove('active');
                 }
             });
         }
@@ -512,38 +521,56 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    currentTagFilter = 'all'; // Clicking a category resets the tag filter
-                    history.pushState(null, '', window.location.pathname); // Clear URL params
-                    updateActiveFilters();
+                    // When a category is clicked, the tag filter is NOT reset
+                    // but we clear the URL parameter to avoid confusion
+                    if(history.state?.tag || new URLSearchParams(window.location.search).get('tag')) {
+                        history.pushState(null, '', window.location.pathname);
+                    }
+                    updateActiveUI();
                     applyFiltersAndRender();
                 }
             });
 
+            const handleTagClick = (link) => {
+                 const url = new URL(link.href);
+                currentTagFilter = url.searchParams.get('tag') || 'all';
+                currentCategoryFilter = 'all'; // Clicking a tag resets the category filter
+                history.pushState({ tag: currentTagFilter }, '', url.search);
+                updateActiveUI();
+                applyFiltersAndRender();
+            };
+
             const mainNav = document.getElementById('main-nav');
             mainNav?.addEventListener('click', e => {
-                const link = e.target.closest('a');
+                const link = e.target.closest('a.nav-link');
                 if (link && link.href.includes('?tag=')) {
                     e.preventDefault();
-                    const url = new URL(link.href);
-                    currentTagFilter = url.searchParams.get('tag');
-                    currentCategoryFilter = 'all'; // Clicking a tag resets the category filter
-                    history.pushState(null, '', url.search);
-                    updateActiveFilters();
+                    handleTagClick(link);
+                } else if (link && link.getAttribute('href') === '/') {
+                    e.preventDefault();
+                    currentTagFilter = 'all';
+                    currentCategoryFilter = 'all';
+                    history.pushState(null, '', '/');
+                    updateActiveUI();
                     applyFiltersAndRender();
                 }
             });
 
             const mobileNav = document.getElementById('mobile-nav-content');
             mobileNav?.addEventListener('click', e => {
-                 const link = e.target.closest('a');
+                 const link = e.target.closest('a.nav-link');
                 if (link && link.href.includes('?tag=')) {
                     e.preventDefault();
-                    const url = new URL(link.href);
-                    currentTagFilter = url.searchParams.get('tag');
+                    handleTagClick(link);
+                    toggleMobileMenu(false);
+                } else if (link && link.getAttribute('href') === '/') {
+                    e.preventDefault();
+                    currentTagFilter = 'all';
                     currentCategoryFilter = 'all';
-                    history.pushState(null, '', url.search);
-                    updateActiveFilters();
+                    history.pushState(null, '', '/');
+                    updateActiveUI();
                     applyFiltersAndRender();
+                    toggleMobileMenu(false);
                 }
             });
 
