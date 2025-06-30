@@ -137,7 +137,7 @@
             font-weight: 700;
         }
         .timer-label {
-            font-size: 0.625rem;
+            font-size: 0.625rem; /* 10px */
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #9CA3AF;
@@ -147,7 +147,7 @@
             .timer-label { font-size: 0.75rem; margin-top: 0.25rem; letter-spacing: 0.1em;}
         }
         .product-title {
-            height: 3rem;
+            height: 3rem; /* for 2 lines */
             line-height: 1.5rem;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -184,6 +184,8 @@
             aspect-ratio: 16 / 9;
         }
         #mobile-menu { transition: transform 0.3s ease-in-out; }
+
+        /* Copied from how-to-buy.html for discount code */
         #discount-code-box {
             background-color: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -196,27 +198,6 @@
         #discount-code-box:hover {
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 2px;
-            margin-top: 1rem;
-        }
-        .pagination button {
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            background-color: #1a1a1a;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-        }
-        .pagination button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .pagination button.active {
-            background-color: #fff;
-            color: #0D0D0D;
         }
     </style>
 </head>
@@ -291,7 +272,7 @@
                 <div id="social-footer-container" class="flex md:hidden justify-center items-center space-x-4 mt-6"></div>
             </div>
             <div class="mt-10 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
-                <p>© 2025 Franks AUTHENTIC Spreadsheet. All Rights Reserved.</p>
+                <p>&copy; 2025 Franks AUTHENTIC Spreadsheet. All Rights Reserved.</p>
             </div>
         </div>
     </footer>
@@ -305,7 +286,7 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let allProducts = [], currentCategoryFilter = 'all', currentTagFilter = 'all';
-        let cnyToUsdRate = 0.14, userCountryCode = null, currentPage = 1, itemsPerPage = 48, totalProducts = 0;
+        let cnyToUsdRate = 0.14, userCountryCode = null;
 
         const urlParams = new URLSearchParams(window.location.search);
         const refId = urlParams.get('ref');
@@ -338,68 +319,60 @@
         function renderProducts(containerId, productArray) {
             const productContainer = document.getElementById(containerId);
             if (!productContainer) return;
-
-            if (!productArray || productArray.length === 0) {
+            
+            productContainer.innerHTML = '';
+            if (productArray.length > 0) {
+                productArray.forEach(p => {
+                    const now = new Date();
+                    const expiry = p.discount_expires_at ? new Date(p.discount_expires_at) : null;
+                    const showDiscount = p.discount_is_active && p.discount_price && (!expiry || expiry > now);
+                    const usdPrice = (p.price * cnyToUsdRate).toFixed(2);
+                    const usdDiscountPrice = p.discount_price ? (p.discount_price * cnyToUsdRate).toFixed(2) : null;
+                    
+                    let priceHTML = `<p class="font-bold text-lg text-gray-100 mt-2">$${usdPrice}</p>`;
+                    if (showDiscount && usdDiscountPrice) {
+                        priceHTML = `<p class="font-bold text-lg text-red-400 mt-2">$${usdDiscountPrice} <span class="text-base text-gray-500 font-normal line-through ml-2">$${usdPrice}</span></p>`;
+                    }
+                    
+                    let discountBadgeHTML = '';
+                    if (showDiscount && p.discount_factor) {
+                        const percentageOff = Math.round((1 - p.discount_factor) * 100);
+                        if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
+                    }
+                    
+                    productContainer.innerHTML += `
+                        <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
+                            <div class="img-wrapper">
+                                <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
+                            </div>
+                            <div class="p-4">
+                                <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
+                                ${priceHTML}
+                            </div>
+                            ${discountBadgeHTML}
+                        </a>`;
+                });
+            } else {
                 productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found for this filter.</p>`;
-                return;
             }
-
-            const productsHTML = productArray.map(p => {
-                const now = new Date();
-                const expiry = p.discount_expires_at ? new Date(p.discount_expires_at) : null;
-                const showDiscount = p.discount_is_active && p.discount_price && (!expiry || expiry > now);
-                const usdPrice = (p.price * cnyToUsdRate).toFixed(2);
-                const usdDiscountPrice = p.discount_price ? (p.discount_price * cnyToUsdRate).toFixed(2) : null;
-                
-                let priceHTML = `<p class="font-bold text-lg text-gray-100 mt-2">$${usdPrice}</p>`;
-                if (showDiscount && usdDiscountPrice) {
-                    priceHTML = `<p class="font-bold text-lg text-red-400 mt-2">$${usdDiscountPrice} <span class="text-base text-gray-500 font-normal line-through ml-2">$${usdPrice}</span></p>`;
-                }
-                
-                let discountBadgeHTML = '';
-                if (showDiscount && p.discount_factor) {
-                    const percentageOff = Math.round((1 - p.discount_factor) * 100);
-                    if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
-                }
-                
-                return `
-                    <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
-                        <div class="img-wrapper">
-                            <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
-                        </div>
-                        <div class="p-4">
-                            <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
-                            ${priceHTML}
-                        </div>
-                        ${discountBadgeHTML}
-                    </a>`;
-            }).join('');
-
-            productContainer.innerHTML = productsHTML;
         }
         
         // Filter the main product list and re-render
         function applyFiltersAndRender() {
-            console.log('Applying filters - Category:', currentCategoryFilter, 'Tag:', currentTagFilter);
             let filteredProducts = allProducts;
             
             if (currentCategoryFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => 
-                    (!p.category || p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter))
-                );
+                filteredProducts = filteredProducts.filter(p => p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter));
             }
             if (currentTagFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => 
-                    p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter)
-                );
+                filteredProducts = filteredProducts.filter(p => p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter));
             }
             
-            console.log('Filtered Products length:', filteredProducts.length, 'Sample:', filteredProducts.slice(0, 2));
             renderProducts('product-list-container', filteredProducts);
         }
 
         // Main function to load all data from Supabase and render the page
-        async function loadAndRender(page = 1) {
+        async function loadAndRender() {
             try {
                 // Fetch exchange rate
                 try {
@@ -407,35 +380,18 @@
                     if (rateResponse.ok) { cnyToUsdRate = (await rateResponse.json()).rates.USD; }
                 } catch (rateError) { console.error('Error fetching exchange rate:', rateError); }
 
-                // Fetch total count for pagination
-                const countRes = await db.from('products').select('*', { count: 'exact' }).eq('is_active', 'TRUE');
-                totalProducts = countRes.count || 0;
-
-                // Fetch current page data
-                const from = (page - 1) * itemsPerPage;
-                const to = from + itemsPerPage - 1;
+                // Fetch all data in parallel
                 const [settingsRes, navRes, tagsRes, socialRes, productsRes, flashSaleSettingsRes, flashSaleProductsRes] = await Promise.all([
                     db.from('settings').select('*').limit(1).single(),
                     db.from('navigation').select('*').order('display_order'),
                     db.from('product_tags').select('*').order('display_order'),
                     db.from('social_links').select('*').order('display_order'),
-                    db.from('products').select('*').eq('is_active', 'TRUE').order('display_order').range(from, to),
+                    db.from('products').select(`*`).eq('is_active', true).order('display_order'),
                     db.from('flash_sale_settings').select('*').single(),
                     db.from('flash_sale_products').select('*, products(*)').order('display_order')
                 ]);
 
-                if (productsRes.error) {
-                    console.error('Products query failed:', productsRes.error);
-                    document.getElementById('product-list-container').innerHTML = `<p class="text-center text-red-500 text-lg p-8">Error loading products: ${productsRes.error.message}. Please try again later.</p>`;
-                    return;
-                }
-                if (navRes.error) {
-                    console.error('Navigation query failed:', navRes.error);
-                    document.getElementById('category-filter-container').innerHTML = '<p class="text-center text-red-500">Error loading categories.</p>';
-                }
-
                 allProducts = productsRes.data || [];
-                console.log('Raw products data length:', allProducts.length, 'Page:', page, 'Total:', totalProducts);
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
@@ -500,13 +456,12 @@
                 }
                 
                 // Render Category Filters
-                const categoryContainer = document.getElementById('category-filter-container');
-                if (categoryContainer) {
-                    categoryContainer.innerHTML = ''; // Clear existing content
+                const categoryFilterContainer = document.getElementById('category-filter-container');
+                if (categoryFilterContainer) {
                     let filterHTML = '<button class="filter-btn active" data-category="all">All</button>';
-                    const validNavItems = navRes.data ? navRes.data.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home') : [];
+                    const validNavItems = navItems.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home');
                     filterHTML += validNavItems.map(link => `<button class="filter-btn" data-category="${link.link_text}">${link.link_text}</button>`).join('');
-                    categoryContainer.innerHTML = filterHTML || '<p class="text-center text-gray-500">No categories available.</p>';
+                    categoryFilterContainer.innerHTML = filterHTML;
                 }
                 
                 // Set initial filter from URL if present
@@ -518,15 +473,10 @@
                             el.classList.add('active');
                         }
                     });
-                } else {
-                    currentTagFilter = 'all';
                 }
-                currentCategoryFilter = 'all'; // Ensure initial category is 'all'
-                applyFiltersAndRender(); // Force initial render
 
-                // Render pagination
-                renderPagination();
-
+                // Initial render of products
+                applyFiltersAndRender();
             } catch (error) {
                 console.error('Error in loadAndRender:', error);
                 document.body.innerHTML = '<p class="text-center text-red-500 text-lg p-8">Error loading page content. Please try again later.</p>';
@@ -546,27 +496,7 @@
             
             setupEventListeners();
         }
-
-        function renderPagination() {
-            const totalPages = Math.ceil(totalProducts / itemsPerPage);
-            const paginationContainer = document.createElement('div');
-            paginationContainer.className = 'flex justify-center gap-2 mt-4 pagination';
-            for (let i = 1; i <= totalPages; i++) {
-                const button = document.createElement('button');
-                button.textContent = i;
-                button.className = `px-3 py-1 rounded ${currentPage === i ? 'bg-white text-black' : 'bg-gray-800 text-white'} hover:bg-gray-700`;
-                button.addEventListener('click', () => {
-                    currentPage = i;
-                    loadAndRender(currentPage);
-                });
-                paginationContainer.appendChild(button);
-            }
-            const productSection = document.getElementById('product-section');
-            const existingPagination = productSection.querySelector('.pagination');
-            if (existingPagination) existingPagination.remove();
-            productSection.appendChild(paginationContainer);
-        }
-
+        
         function setupEventListeners() {
             document.body.addEventListener('click', e => {
                 const card = e.target.closest('.product-card');
@@ -574,26 +504,17 @@
             });
             
             const categoryContainer = document.getElementById('category-filter-container');
-            if (categoryContainer) {
-                categoryContainer.innerHTML = ''; // Clear existing content
-                let filterHTML = '<button class="filter-btn active" data-category="all">All</button>';
-                const validNavItems = navRes.data ? navRes.data.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home') : [];
-                filterHTML += validNavItems.map(link => `<button class="filter-btn" data-category="${link.link_text}">${link.link_text}</button>`).join('');
-                categoryContainer.innerHTML = filterHTML || '<p class="text-center text-gray-500">No categories available.</p>';
-
-                categoryContainer.addEventListener('click', e => {
-                    const button = e.target.closest('.filter-btn');
-                    if (button) {
-                        categoryContainer.querySelector('.active')?.classList.remove('active');
-                        button.classList.add('active');
-                        currentCategoryFilter = button.dataset.category;
-                        currentTagFilter = tagFromUrl || 'all'; // 保留 tagFromUrl，fallback to 'all'
-                        document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
-                        currentPage = 1; // Reset to first page on category change
-                        loadAndRender(currentPage);
-                    }
-                });
-            }
+            categoryContainer?.addEventListener('click', e => {
+                const button = e.target.closest('.filter-btn');
+                if (button) {
+                    categoryContainer.querySelector('.active')?.classList.remove('active');
+                    button.classList.add('active');
+                    currentCategoryFilter = button.dataset.category;
+                    currentTagFilter = 'all'; 
+                    document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
+                    applyFiltersAndRender();
+                }
+            });
 
             // Mobile Menu
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
