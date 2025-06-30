@@ -401,9 +401,41 @@
             
             paginationHTML += `<button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
 
-            for (let i = 1; i <= totalPages; i++) {
+            // Logic to show a limited number of page buttons
+            const maxPagesToShow = 5;
+            let startPage, endPage;
+            if (totalPages <= maxPagesToShow) {
+                startPage = 1;
+                endPage = totalPages;
+            } else {
+                const maxPagesBeforeCurrent = Math.floor(maxPagesToShow / 2);
+                const maxPagesAfterCurrent = Math.ceil(maxPagesToShow / 2) - 1;
+                if (currentPage <= maxPagesBeforeCurrent) {
+                    startPage = 1;
+                    endPage = maxPagesToShow;
+                } else if (currentPage + maxPagesAfterCurrent >= totalPages) {
+                    startPage = totalPages - maxPagesToShow + 1;
+                    endPage = totalPages;
+                } else {
+                    startPage = currentPage - maxPagesBeforeCurrent;
+                    endPage = currentPage + maxPagesAfterCurrent;
+                }
+            }
+
+            if (startPage > 1) {
+                 paginationHTML += `<button class="pagination-btn" data-page="1">1</button>`;
+                 if (startPage > 2) paginationHTML += `<span class="px-2">...</span>`;
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
                 paginationHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
             }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) paginationHTML += `<span class="px-2">...</span>`;
+                paginationHTML += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
+            }
+
 
             paginationHTML += `<button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
             
@@ -423,7 +455,7 @@
             } else {
                 url.searchParams.delete('page');
             }
-            history.pushState({}, '', url);
+            history.pushState({tag: currentTagFilter, category: currentCategoryFilter, page: currentPage}, '', url);
         }
         
         async function fetchProductsPage(page, options = { shouldScroll: false }) {
@@ -541,8 +573,8 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 currentTagFilter = urlParams.get('tag') || 'all';
                 currentPage = parseInt(urlParams.get('page') || '1');
-                currentCategoryFilter = urlParams.has('tag') ? 'all' : (urlParams.get('category') || 'all'); 
-                
+                currentCategoryFilter = 'all'; 
+
                 updateActiveUI();
                 fetchProductsPage(currentPage, { shouldScroll: urlParams.has('page') }); 
 
@@ -585,7 +617,9 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    currentTagFilter = 'all'; // Reset tag filter when category is clicked
+                    if(currentCategoryFilter !== 'all') {
+                        currentTagFilter = 'all'; // Clicking a category resets the tag filter
+                    }
                     fetchProductsPage(1, { shouldScroll: true }); 
                     updateURL();
                     updateActiveUI();
@@ -606,7 +640,7 @@
                 const url = new URL(link.href, window.location.origin);
                 const tag = url.searchParams.get('tag');
 
-                if (tag) {
+                if (link.getAttribute('href').startsWith('/?tag=')) {
                     e.preventDefault();
                     handleTagClick(tag);
                 } else if (link.getAttribute('href') === '/') {
@@ -614,7 +648,7 @@
                     handleTagClick('all');
                 }
             });
-
+            
             document.getElementById('pagination-container').addEventListener('click', e => {
                 const button = e.target.closest('.pagination-btn');
                 if (button && !button.disabled) {
@@ -624,6 +658,7 @@
                 }
             });
 
+            // --- Other listeners ---
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
             const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
