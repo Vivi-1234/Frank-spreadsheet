@@ -406,26 +406,23 @@
             paginationContainer.innerHTML = paginationHTML;
         }
         
-        async function fetchProductsPage(page) {
+        async function fetchProductsPage(page, options = { shouldScroll: false }) {
             currentPage = page;
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
             const productContainer = document.getElementById('product-list-container');
             productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">Loading products...</p>`;
+            document.getElementById('pagination-container').innerHTML = '';
 
             let query = db.from('products').select('*', { count: 'exact' }).eq('is_active', true);
 
-            // *** FIXED LOGIC ***
             if (currentCategoryFilter !== 'all') {
-                // Use .like() for text search. % is a wildcard.
                 query = query.like('category', `%${currentCategoryFilter}%`);
             }
             if (currentTagFilter !== 'all') {
-                 // Use .like() for text search. % is a wildcard.
                 query = query.like('tags', `%${currentTagFilter}%`);
             }
-            // *** END OF FIX ***
 
             query = query.order('display_order').range(from, to);
 
@@ -440,9 +437,11 @@
             renderProducts(data);
             renderPagination(count, currentPage);
             
-            const productSection = document.getElementById('product-section');
-            if (productSection) {
-                 productSection.scrollIntoView({ behavior: 'smooth' });
+            if (options.shouldScroll) {
+                const productSection = document.getElementById('product-section');
+                if (productSection) {
+                    productSection.scrollIntoView({ behavior: 'smooth' });
+                }
             }
         }
 
@@ -525,7 +524,7 @@
                 currentCategoryFilter = 'all'; 
 
                 updateActiveUI();
-                fetchProductsPage(currentPage);
+                fetchProductsPage(currentPage, { shouldScroll: false }); // Initial load doesn't scroll
 
             } catch (error) {
                 console.error('Error loading initial data:', error);
@@ -566,7 +565,7 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    fetchProductsPage(1); 
+                    fetchProductsPage(1, { shouldScroll: true }); 
                     updateActiveUI();
                 }
             });
@@ -574,7 +573,7 @@
             const handleTagClick = (tag) => {
                 currentTagFilter = tag;
                 currentCategoryFilter = 'all';
-                fetchProductsPage(1); 
+                fetchProductsPage(1, { shouldScroll: true }); 
                 updateActiveUI();
             };
 
@@ -599,7 +598,7 @@
                 const button = e.target.closest('.pagination-btn');
                 if (button && !button.disabled) {
                     const page = parseInt(button.dataset.page);
-                    fetchProductsPage(page);
+                    fetchProductsPage(page, { shouldScroll: true });
                 }
             });
 
