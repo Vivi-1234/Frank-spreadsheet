@@ -197,6 +197,30 @@
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
         }
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #9CA3AF;
+            background: transparent;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            color: #F9FAFB;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-btn.active {
+             background: #FFFFFF;
+            color: #0D0D0D;
+            border-color: #FFFFFF;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -257,7 +281,8 @@
 
         <section id="product-section" class="pt-8 md:pt-12 fade-in-up">
             <div id="category-filter-container" class="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12"></div>
-            <div id="product-list-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"></div>
+            <div id="product-list-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[500px]"></div>
+            <div id="pagination-container" class="flex justify-center items-center mt-12 space-x-2"></div>
         </section>
 
     </main>
@@ -283,8 +308,11 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
+        // --- State ---
         let allProducts = [], currentCategoryFilter = 'all', currentTagFilter = 'all';
         let cnyToUsdRate = 0.14, userCountryCode = null;
+        let currentPage = 1;
+        const pageSize = 48;
 
         // --- Core Logic ---
         
@@ -313,12 +341,12 @@
             } catch(e) { return url; }
         }
         
-        function renderProducts(containerId, productArray) {
-            const productContainer = document.getElementById(containerId);
+        function renderProducts(productArray) {
+            const productContainer = document.getElementById('product-list-container');
             if (!productContainer) return;
 
             if (!productArray || productArray.length === 0) {
-                productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found for this filter.</p>`;
+                productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found.</p>`;
                 return;
             }
             
@@ -355,53 +383,102 @@
 
             productContainer.innerHTML = productsHTML;
         }
+
+        function renderPagination(totalItems, currentPage) {
+            const paginationContainer = document.getElementById('pagination-container');
+            if (!paginationContainer) return;
+            
+            const totalPages = Math.ceil(totalItems / pageSize);
+            paginationContainer.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `<button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
+
+            // Page numbers
+            // Simple logic for now, can be improved with ellipses for many pages
+            for (let i = 1; i <= totalPages; i++) {
+                paginationHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+            }
+
+            // Next button
+            paginationHTML += `<button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+            
+            paginationContainer.innerHTML = paginationHTML;
+        }
         
-        function applyFiltersAndRender() {
-            let filteredProducts = allProducts;
-            
+        async function fetchProductsPage(page) {
+            currentPage = page;
+            const from = (page - 1) * pageSize;
+            const to = from + pageSize - 1;
+
+            const productContainer = document.getElementById('product-list-container');
+            productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">Loading products...</p>`;
+
+            let query = db.from('products').select('*', { count: 'exact' }).eq('is_active', true);
+
+            // Apply filters
             if (currentCategoryFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter));
+                query = query.contains('category', [currentCategoryFilter]);
             }
-            
             if (currentTagFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter));
+                query = query.contains('tags', [currentTagFilter]);
             }
+
+            // Apply ordering and range
+            query = query.order('display_order').range(from, to);
+
+            const { data, error, count } = await query;
+
+            if (error) {
+                console.error("Error fetching products:", error);
+                productContainer.innerHTML = `<p class="text-center text-red-500 text-lg col-span-full">Failed to load products.</p>`;
+                return;
+            }
+
+            renderProducts(data);
+            renderPagination(count, currentPage);
             
-            renderProducts('product-list-container', filteredProducts);
+            // Scroll to top of product section after page change
+            const productSection = document.getElementById('product-section');
+            if (productSection) {
+                 productSection.scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
-        async function loadAndRender() {
+        async function loadInitialData() {
             try {
                 try {
                     const rateResponse = await fetch('https://api.frankfurter.app/latest?from=CNY&to=USD');
                     if (rateResponse.ok) { cnyToUsdRate = (await rateResponse.json()).rates.USD; }
                 } catch (rateError) { console.error('Error fetching exchange rate:', rateError); }
 
-                const [settingsRes, navRes, tagsRes, socialRes, productsRes, flashSaleSettingsRes, flashSaleProductsRes] = await Promise.all([
+                const [settingsRes, navRes, tagsRes, socialRes, flashSaleSettingsRes] = await Promise.all([
                     db.from('settings').select('*').limit(1).single(),
                     db.from('navigation').select('*').order('display_order'),
                     db.from('product_tags').select('*').order('display_order'),
                     db.from('social_links').select('*').order('display_order'),
-                    db.from('products').select(`*`).eq('is_active', true).order('display_order'),
-                    db.from('flash_sale_settings').select('*').single(),
-                    db.from('flash_sale_products').select('*, products(*)').order('display_order')
+                    db.from('flash_sale_settings').select('*').single()
                 ]);
 
-                allProducts = productsRes.data || [];
+                // This part no longer fetches all products, just site-wide settings
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
-                const socialLinks = socialRes.data;
+                const socialLinks = socialRes.data || [];
                 const flashSaleSettings = flashSaleSettingsRes.data;
-                const flashSaleProducts = (flashSaleProductsRes.data || []).map(item => item.products).filter(Boolean);
 
-                const flashSaleSection = document.getElementById('flash-sale-section');
                 if (flashSaleSettings?.is_active && flashSaleSettings.end_time) {
+                    const { data: flashSaleProductsData } = await db.from('flash_sale_products').select('*, products(*)').order('display_order');
+                    const flashSaleProducts = (flashSaleProductsData || []).map(item => item.products).filter(Boolean);
                     const endTime = new Date(flashSaleSettings.end_time);
                     if (endTime > new Date()) {
-                        flashSaleSection.classList.remove('hidden');
+                        document.getElementById('flash-sale-section').classList.remove('hidden');
                         setupCountdown(endTime);
-                        renderProducts('flash-sale-product-list', flashSaleProducts);
+                        renderProducts(flashSaleProducts);
                     }
                 }
 
@@ -419,30 +496,23 @@
                 if (mainNavContainer && mobileNavContent) {
                     let desktopNavHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link text-sm font-medium">How-to-buy</a>`;
                     let mobileNavHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link text-lg md:text-sm font-medium">How-to-buy</a>`;
-                    
                     desktopNavHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-sm font-medium">${tag.name}</a>`).join('');
                     mobileNavHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-lg md:text-sm font-medium">${tag.name}</a>`).join('');
-
                     mainNavContainer.innerHTML = desktopNavHTML;
                     mobileNavContent.innerHTML = mobileNavHTML;
                 }
 
                 const socialSidebar = document.getElementById('social-sidebar');
                 const socialFooter = document.getElementById('social-footer-container');
-                if (socialLinks && socialLinks.length > 0) {
-                    if (socialSidebar) socialSidebar.innerHTML = '';
-                    if (socialFooter) socialFooter.innerHTML = '';
-                    socialLinks.forEach(link => {
+                if (socialLinks.length > 0) {
+                    let socialHTML = socialLinks.map(link => {
                         const iconImage = `<img src="${link.icon_url}" alt="${link.platform_name} logo" class="w-full h-full object-cover rounded-full">`;
                         let finalUrl = link.link_url || '#';
                         if (finalUrl !== '#' && !finalUrl.startsWith('http')) finalUrl = `https://${finalUrl}`;
-                        if (socialSidebar) {
-                            socialSidebar.innerHTML += `<a href="${finalUrl}" target="_blank" class="social-sidebar-icon" title="${link.platform_name}">${iconImage}</a>`;
-                        }
-                        if (socialFooter) {
-                            socialFooter.innerHTML += `<a href="${finalUrl}" target="_blank" class="text-gray-400 hover:text-white transition-colors"><div class="w-8 h-8">${iconImage}</div></a>`;
-                        }
+                        return { sidebar: `<a href="${finalUrl}" target="_blank" class="social-sidebar-icon" title="${link.platform_name}">${iconImage}</a>`, footer: `<a href="${finalUrl}" target="_blank" class="text-gray-400 hover:text-white transition-colors"><div class="w-8 h-8">${iconImage}</div></a>`};
                     });
+                    if (socialSidebar) socialSidebar.innerHTML = socialHTML.map(h => h.sidebar).join('');
+                    if (socialFooter) socialFooter.innerHTML = socialHTML.map(h => h.footer).join('');
                 }
                 
                 const categoryFilterContainer = document.getElementById('category-filter-container');
@@ -453,53 +523,32 @@
                     categoryFilterContainer.innerHTML = filterHTML;
                 }
                 
-                initializeFilters();
-                applyFiltersAndRender();
+                const urlParams = new URLSearchParams(window.location.search);
+                currentTagFilter = urlParams.get('tag') || 'all';
+                currentPage = parseInt(urlParams.get('page') || '1');
+                currentCategoryFilter = 'all'; 
+
                 updateActiveUI();
+                fetchProductsPage(currentPage);
 
             } catch (error) {
-                console.error('Error in loadAndRender:', error);
+                console.error('Error loading initial data:', error);
                 document.body.innerHTML = '<p class="text-center text-red-500 text-lg p-8">Error loading page content. Please try again later.</p>';
             }
 
             lucide.createIcons();
-            
-            const observer = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.1 });
-            document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
-            
             setupEventListeners();
-        }
-        
-        function initializeFilters() {
-            const tagFromUrl = new URLSearchParams(window.location.search).get('tag');
-            if (tagFromUrl) {
-                currentTagFilter = tagFromUrl;
-                currentCategoryFilter = 'all';
-            } else {
-                currentTagFilter = 'all';
-                currentCategoryFilter = 'all';
-            }
+            setupAnimations();
         }
 
         function updateActiveUI() {
-            // Update active state for category buttons
             document.querySelectorAll('#category-filter-container .filter-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.category === currentCategoryFilter);
             });
-
-            // Update active state for nav links (tags)
             document.querySelectorAll('#main-nav .nav-link, #mobile-nav-content .nav-link').forEach(link => {
                 const url = new URL(link.href, window.location.origin);
                 const linkTag = url.searchParams.get('tag');
                 
-                // Special case for 'Home' link
                 if (link.getAttribute('href') === '/') {
                     link.classList.toggle('active', currentTagFilter === 'all' && currentCategoryFilter === 'all');
                 } else if (linkTag) {
@@ -521,59 +570,44 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    // When a category is clicked, the tag filter is NOT reset
-                    // but we clear the URL parameter to avoid confusion
-                    if(history.state?.tag || new URLSearchParams(window.location.search).get('tag')) {
-                        history.pushState(null, '', window.location.pathname);
-                    }
+                    fetchProductsPage(1); // Go to page 1 of new category
                     updateActiveUI();
-                    applyFiltersAndRender();
                 }
             });
-
-            const handleTagClick = (link) => {
-                 const url = new URL(link.href);
-                currentTagFilter = url.searchParams.get('tag') || 'all';
-                currentCategoryFilter = 'all'; // Clicking a tag resets the category filter
-                history.pushState({ tag: currentTagFilter }, '', url.search);
+            
+            const handleTagClick = (tag) => {
+                currentTagFilter = tag;
+                currentCategoryFilter = 'all';
+                fetchProductsPage(1); // Go to page 1 of new tag
                 updateActiveUI();
-                applyFiltersAndRender();
             };
 
-            const mainNav = document.getElementById('main-nav');
-            mainNav?.addEventListener('click', e => {
+            document.getElementById('main-nav')?.addEventListener('click', e => {
                 const link = e.target.closest('a.nav-link');
-                if (link && link.href.includes('?tag=')) {
+                if (!link) return;
+                const url = new URL(link.href, window.location.origin);
+                const tag = url.searchParams.get('tag');
+
+                if (tag) {
                     e.preventDefault();
-                    handleTagClick(link);
-                } else if (link && link.getAttribute('href') === '/') {
+                    history.pushState({tag}, '', url.search);
+                    handleTagClick(tag);
+                } else if (link.getAttribute('href') === '/') {
                     e.preventDefault();
-                    currentTagFilter = 'all';
-                    currentCategoryFilter = 'all';
-                    history.pushState(null, '', '/');
-                    updateActiveUI();
-                    applyFiltersAndRender();
+                    history.pushState({}, '', '/');
+                    handleTagClick('all');
                 }
             });
 
-            const mobileNav = document.getElementById('mobile-nav-content');
-            mobileNav?.addEventListener('click', e => {
-                 const link = e.target.closest('a.nav-link');
-                if (link && link.href.includes('?tag=')) {
-                    e.preventDefault();
-                    handleTagClick(link);
-                    toggleMobileMenu(false);
-                } else if (link && link.getAttribute('href') === '/') {
-                    e.preventDefault();
-                    currentTagFilter = 'all';
-                    currentCategoryFilter = 'all';
-                    history.pushState(null, '', '/');
-                    updateActiveUI();
-                    applyFiltersAndRender();
-                    toggleMobileMenu(false);
+            document.getElementById('pagination-container').addEventListener('click', e => {
+                const button = e.target.closest('.pagination-btn');
+                if (button && !button.disabled) {
+                    const page = parseInt(button.dataset.page);
+                    fetchProductsPage(page);
                 }
             });
 
+            // --- Other listeners ---
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
             const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
@@ -615,17 +649,9 @@
         function setupCountdown(targetDate) {
             const timerContainer = document.getElementById('countdown-timer');
             if(!timerContainer) return;
-            
-            timerContainer.innerHTML = `
-                <div class="timer-box"><span id="days" class="timer-value">00</span><span class="timer-label">Days</span></div>
-                <div class="timer-box"><span id="hours" class="timer-value">00</span><span class="timer-label">Hours</span></div>
-                <div class="timer-box"><span id="minutes" class="timer-value">00</span><span class="timer-label">Minutes</span></div>
-                <div class="timer-box"><span id="seconds" class="timer-value">00</span><span class="timer-label">Seconds</span></div>
-            `;
-            
+            timerContainer.innerHTML = `<div class="timer-box"><span id="days" class="timer-value">00</span><span class="timer-label">Days</span></div><div class="timer-box"><span id="hours" class="timer-value">00</span><span class="timer-label">Hours</span></div><div class="timer-box"><span id="minutes" class="timer-value">00</span><span class="timer-label">Minutes</span></div><div class="timer-box"><span id="seconds" class="timer-value">00</span><span class="timer-label">Seconds</span></div>`;
             const daysEl = document.getElementById('days'), hoursEl = document.getElementById('hours'), minutesEl = document.getElementById('minutes'), secondsEl = document.getElementById('seconds');
             if (!daysEl) return;
-
             const countdownInterval = setInterval(() => {
                 const distance = targetDate.getTime() - new Date().getTime();
                 if (distance < 0) {
@@ -644,11 +670,8 @@
             try {
                 const response = await fetch('https://ipapi.co/json/');
                 if (response.ok) {
-                    const geoData = await response.json();
-                    userCountryCode = geoData.country_code || 'Unknown';
-                } else {
-                    userCountryCode = 'API Error';
-                }
+                    userCountryCode = (await response.json()).country_code || 'Unknown';
+                } else { userCountryCode = 'API Error'; }
             } catch (error) {
                 console.error('Could not fetch geolocation data:', error);
                 userCountryCode = 'Network Error';
@@ -657,9 +680,22 @@
             }
         }
 
+        function setupAnimations() {
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            loadAndRender();
+            loadInitialData();
             initGeoAndLog();
+            setupAnimations();
         });
     </script>
 </body>
