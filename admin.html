@@ -123,7 +123,6 @@
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
         let howToBuySettingsCache = null;
-        let shouldPreserveScroll = false; // Flag to preserve scroll position
 
         // --- DOM Elements ---
         const authScreen = document.getElementById('auth-screen');
@@ -292,12 +291,8 @@
             await loadProducts();
         }
         
-        async function loadProducts() {
-            let scrollPosition = 0;
-            if (shouldPreserveScroll) {
-                scrollPosition = mainContent.scrollTop;
-            }
-
+        async function loadProducts(options = {}) {
+            const { scrollPosition } = options;
             const productListEl = document.getElementById('product-list');
             if (!productListEl) return;
             
@@ -358,10 +353,9 @@
             sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
             
-            if (shouldPreserveScroll) {
+            if (scrollPosition !== undefined) {
                 requestAnimationFrame(() => {
                     mainContent.scrollTop = scrollPosition;
-                    shouldPreserveScroll = false; // Reset the flag
                 });
             }
         }
@@ -771,8 +765,7 @@
                 document.getElementById('add-product-forms-container').innerHTML = '';
                 newProductFiles.clear();
                 addProductFormRow();
-                shouldPreserveScroll = true;
-                await loadProducts();
+                await loadProducts({ scrollPosition: mainContent.scrollHeight });
             }
         }
         
@@ -807,8 +800,7 @@
             } else { 
                 modal.classList.add('hidden'); 
                 currentEditFile = null; 
-                shouldPreserveScroll = true;
-                await loadProducts(); 
+                await loadProducts({ scrollPosition: mainContent.scrollTop }); 
                 showAlert('Product updated!'); 
             }
             button.disabled = false;
@@ -828,8 +820,7 @@
             }
             catch (error) {
                 showAlert('Reorder failed: ' + error.message, true);
-                shouldPreserveScroll = true;
-                await loadProducts(); // Reload to show the correct order on failure
+                await loadProducts({ scrollPosition: mainContent.scrollTop }); // Reload to show the correct order on failure
             }
             finally {
                 showLoading(false);
@@ -842,8 +833,7 @@
             showLoading(false);
             if (error) {
                 showAlert('Update failed: ' + error.message, true);
-                shouldPreserveScroll = true;
-                await loadProducts(); 
+                await loadProducts({ scrollPosition: mainContent.scrollTop }); 
             } else { 
                 const product = productsCache.find(p => p.id == productId); 
                 if(product) product[field] = value; 
@@ -1066,14 +1056,14 @@
             const product = productsCache.find(p => p.id == productId);
             const productName = product ? product.name : 'this product';
             if (confirm(`Are you sure you want to remove "${productName}"?`)) {
+                const scrollPosition = mainContent.scrollTop; // Capture scroll before action
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).eq('id', productId);
                 if (error) {
                     showAlert('Delete failed: ' + error.message, true);
                 } else {
                     showAlert('Product removed.');
-                    shouldPreserveScroll = true; // Set flag to preserve scroll
-                    await loadProducts(); // Refresh the list
+                    await loadProducts({ scrollPosition }); // Pass scroll position
                 }
                 showLoading(false);
             }
@@ -1214,11 +1204,11 @@
             const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
             if (selectedIds.length === 0) return showAlert('Please select products to delete.', true);
             if (confirm(`Are you sure you want to remove ${selectedIds.length} selected products?`)) {
+                const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).in('id', selectedIds);
                 if (error) { showAlert('Delete failed: ' + error.message, true); }
-                shouldPreserveScroll = true;
-                await loadProducts();
+                await loadProducts({ scrollPosition });
                 showLoading(false);
             }
         }
@@ -1229,12 +1219,12 @@
             const productsToUpdate = productsCache.filter(p => selectedIds.includes(p.id));
             const turnOn = productsToUpdate.some(p => !p.discount_is_active);
             if (confirm(`Are you sure you want to set the discount status to "${turnOn ? 'ON' : 'OFF'}" for ${selectedIds.length} products?`)) {
+                const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 try {
                     const updatePromises = selectedIds.map(id => db.from('products').update({ discount_is_active: turnOn }).eq('id', id));
                     await Promise.all(updatePromises);
-                    shouldPreserveScroll = true;
-                    await loadProducts();
+                    await loadProducts({ scrollPosition });
                 } catch (error) { showAlert('Bulk update failed: ' + error.message, true);
                 } finally { showLoading(false); }
             }
