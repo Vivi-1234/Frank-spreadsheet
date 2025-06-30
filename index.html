@@ -360,7 +360,7 @@
         // Filter the main product list and re-render
         function applyFiltersAndRender() {
             console.log('Applying filters - Category:', currentCategoryFilter, 'Tag:', currentTagFilter);
-            let filteredProducts = allProducts;
+            let filteredProducts = allProducts.filter(p => p.is_active); // Only active products
 
             // Only apply category filter when not 'all'
             if (currentCategoryFilter !== 'all') {
@@ -401,8 +401,12 @@
                     db.from('flash_sale_products').select('*, products(*)').order('display_order')
                 ]);
 
-                allProducts = productsRes.data || [];
-                console.log('Loaded All Products:', allProducts.map(p => ({ id: p.id, name: p.name, category: p.category, tags: p.tags })));
+                allProducts = productsRes.data.map(p => ({
+                    ...p,
+                    is_active: p.is_active === 'TRUE',
+                    discount_is_active: p.discount_is_active === 'TRUE'
+                })) || [];
+                console.log('Loaded All Products:', allProducts.map(p => ({ id: p.id, name: p.name, category: p.category, tags: p.tags, is_active: p.is_active })));
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
