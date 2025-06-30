@@ -317,42 +317,44 @@
         function renderProducts(containerId, productArray) {
             const productContainer = document.getElementById(containerId);
             if (!productContainer) return;
-            
-            productContainer.innerHTML = '';
-            if (productArray.length > 0) {
-                productArray.forEach(p => {
-                    const now = new Date();
-                    const expiry = p.discount_expires_at ? new Date(p.discount_expires_at) : null;
-                    const showDiscount = p.discount_is_active && p.discount_price && (!expiry || expiry > now);
-                    const usdPrice = (p.price * cnyToUsdRate).toFixed(2);
-                    const usdDiscountPrice = p.discount_price ? (p.discount_price * cnyToUsdRate).toFixed(2) : null;
-                    
-                    let priceHTML = `<p class="font-bold text-lg text-gray-100 mt-2">$${usdPrice}</p>`;
-                    if (showDiscount && usdDiscountPrice) {
-                        priceHTML = `<p class="font-bold text-lg text-red-400 mt-2">$${usdDiscountPrice} <span class="text-base text-gray-500 font-normal line-through ml-2">$${usdPrice}</span></p>`;
-                    }
-                    
-                    let discountBadgeHTML = '';
-                    if (showDiscount && p.discount_factor) {
-                        const percentageOff = Math.round((1 - p.discount_factor) * 100);
-                        if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
-                    }
-                    
-                    productContainer.innerHTML += `
-                        <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
-                            <div class="img-wrapper">
-                                <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
-                            </div>
-                            <div class="p-4">
-                                <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
-                                ${priceHTML}
-                            </div>
-                            ${discountBadgeHTML}
-                        </a>`;
-                });
-            } else {
+
+            if (!productArray || productArray.length === 0) {
                 productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found for this filter.</p>`;
+                return;
             }
+
+            const productsHTML = productArray.map(p => {
+                const now = new Date();
+                const expiry = p.discount_expires_at ? new Date(p.discount_expires_at) : null;
+                const showDiscount = p.discount_is_active && p.discount_price && (!expiry || expiry > now);
+                const usdPrice = (p.price * cnyToUsdRate).toFixed(2);
+                const usdDiscountPrice = p.discount_price ? (p.discount_price * cnyToUsdRate).toFixed(2) : null;
+                
+                let priceHTML = `<p class="font-bold text-lg text-gray-100 mt-2">$${usdPrice}</p>`;
+                if (showDiscount && usdDiscountPrice) {
+                    priceHTML = `<p class="font-bold text-lg text-red-400 mt-2">$${usdDiscountPrice} <span class="text-base text-gray-500 font-normal line-through ml-2">$${usdPrice}</span></p>`;
+                }
+                
+                let discountBadgeHTML = '';
+                if (showDiscount && p.discount_factor) {
+                    const percentageOff = Math.round((1 - p.discount_factor) * 100);
+                    if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
+                }
+                
+                return `
+                    <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
+                        <div class="img-wrapper">
+                            <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
+                            ${priceHTML}
+                        </div>
+                        ${discountBadgeHTML}
+                    </a>`;
+            }).join('');
+
+            productContainer.innerHTML = productsHTML;
         }
         
         // Filter the main product list and re-render
@@ -371,7 +373,8 @@
                 );
             }
             
-            console.log('Filtered Products:', filteredProducts);
+            console.log('Raw products data length:', allProducts.length);
+            console.log('Filtered Products length:', filteredProducts.length);
             renderProducts('product-list-container', filteredProducts);
         }
 
