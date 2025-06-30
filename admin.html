@@ -23,7 +23,7 @@
             --accent-hover: #DDDDDD; --text-primary: #FFFFFF; --text-secondary: #AAAAAA;
             --danger-color: #EF4444; --text-on-accent: #000000;
         }
-        html { scroll-behavior: smooth; }
+        /* ***** 重要修改：移除了全局的 html { scroll-behavior: smooth; } ***** */
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); }
         .panel { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.75rem; }
         aside { background-color: #000000; border-right: 1px solid var(--border-color); transition: transform 0.3s ease-in-out; }
@@ -291,7 +291,6 @@
         }
         
         async function loadProducts(options = {}) {
-            // Destructure scrollPosition from options. If it exists, we'll use it later.
             const { scrollPosition } = options;
             const productListEl = document.getElementById('product-list');
             if (!productListEl) return;
@@ -353,13 +352,10 @@
             sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
             
-            // **KEY CHANGE**: If a scrollPosition was passed, restore it.
+            // ***** 重要修改：恢复滚动位置的逻辑 *****
             if (scrollPosition !== undefined) {
-                // Use requestAnimationFrame to ensure the DOM is painted before we set the scroll.
-                // This prevents race conditions and ensures the scroll height is correct.
-                requestAnimationFrame(() => {
-                    mainContent.scrollTop = scrollPosition;
-                });
+                // 直接设置滚动位置，因为已经移除了平滑滚动效果
+                mainContent.scrollTop = scrollPosition;
             }
         }
         
@@ -745,7 +741,6 @@
             const forms = document.querySelectorAll('.add-form-row');
             if (forms.length === 0) return showAlert('No products to add.');
             
-            // **KEY CHANGE**: Save current scroll position before submitting.
             const scrollPosition = mainContent.scrollTop;
             
             showLoading(true);
@@ -772,13 +767,11 @@
                 document.getElementById('add-product-forms-container').innerHTML = '';
                 newProductFiles.clear();
                 addProductFormRow();
-                // **KEY CHANGE**: After adding, reload products and restore scroll position.
                 await loadProducts({ scrollPosition });
             }
         }
         
         async function saveProductChanges() {
-            // **KEY CHANGE**: Save current scroll position before updating the product.
             const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const button = document.getElementById('save-product-changes-btn');
@@ -810,7 +803,6 @@
             } else { 
                 modal.classList.add('hidden'); 
                 currentEditFile = null; 
-                // **KEY CHANGE**: After saving, reload the product list and restore the scroll position.
                 await loadProducts({ scrollPosition }); 
                 showAlert('Product updated!'); 
             }
@@ -822,7 +814,6 @@
             const updatePromises = reorderedIds.map((id, index) =>
                 db.from('products').update({ display_order: index }).eq('id', id)
             );
-            // **KEY CHANGE**: Save scroll position before reordering.
             const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             try {
@@ -834,24 +825,20 @@
                 showAlert('Reorder failed: ' + error.message, true);
             }
             finally {
-                // **KEY CHANGE**: Reload list and restore scroll position.
                 await loadProducts({ scrollPosition });
                 showLoading(false);
             }
         }
 
         async function updateProductField(productId, field, value) {
-            // **KEY CHANGE**: Save scroll position in case of an error that requires a reload.
             const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const { error } = await db.from('products').update({ [field]: value }).eq('id', productId);
             showLoading(false);
             if (error) {
                 showAlert('Update failed: ' + error.message, true);
-                // On failure, reload the list to its previous state, maintaining scroll.
                 await loadProducts({ scrollPosition }); 
             } else { 
-                // On success, just update the local cache for better performance. No reload needed.
                 const product = productsCache.find(p => p.id == productId); 
                 if(product) product[field] = value; 
             }
@@ -1073,7 +1060,6 @@
             const product = productsCache.find(p => p.id == productId);
             const productName = product ? product.name : 'this product';
             if (confirm(`Are you sure you want to remove "${productName}"?`)) {
-                // **KEY CHANGE**: Save current scroll position before deleting.
                 const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).eq('id', productId);
@@ -1081,7 +1067,6 @@
                     showAlert('Delete failed: ' + error.message, true);
                 } else {
                     showAlert('Product removed.');
-                    // **KEY CHANGE**: After deleting, reload products and restore scroll position.
                     await loadProducts({ scrollPosition }); 
                 }
                 showLoading(false);
@@ -1223,12 +1208,10 @@
             const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.dataset.id);
             if (selectedIds.length === 0) return showAlert('Please select products to delete.', true);
             if (confirm(`Are you sure you want to remove ${selectedIds.length} selected products?`)) {
-                // **KEY CHANGE**: Save current scroll position before bulk deleting.
                 const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).in('id', selectedIds);
                 if (error) { showAlert('Delete failed: ' + error.message, true); }
-                // **KEY CHANGE**: After deleting, reload products and restore scroll position.
                 await loadProducts({ scrollPosition });
                 showLoading(false);
             }
@@ -1240,13 +1223,11 @@
             const productsToUpdate = productsCache.filter(p => selectedIds.includes(p.id));
             const turnOn = productsToUpdate.some(p => !p.discount_is_active);
             if (confirm(`Are you sure you want to set the discount status to "${turnOn ? 'ON' : 'OFF'}" for ${selectedIds.length} products?`)) {
-                // **KEY CHANGE**: Save current scroll position before bulk action.
                 const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 try {
                     const updatePromises = selectedIds.map(id => db.from('products').update({ discount_is_active: turnOn }).eq('id', id));
                     await Promise.all(updatePromises);
-                    // **KEY CHANGE**: After action, reload products and restore scroll position.
                     await loadProducts({ scrollPosition });
                 } catch (error) { showAlert('Bulk update failed: ' + error.message, true);
                 } finally { showLoading(false); }
@@ -1254,8 +1235,6 @@
         }
 
         async function toggleDiscount(id, isActive) {
-            // This function only updates the DB and does not reload the whole list for performance.
-            // Therefore, scroll position is not affected and does not need to be managed here.
             await db.from('products').update({ discount_is_active: isActive }).eq('id', id);
         }
 
