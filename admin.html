@@ -123,7 +123,7 @@
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
         let howToBuySettingsCache = null;
-
+        
         // --- DOM Elements ---
         const authScreen = document.getElementById('auth-screen');
         const adminPanel = document.getElementById('admin-panel');
@@ -284,7 +284,6 @@
         }
 
         async function initProductsPanel() {
-            shouldPreserveScroll = false; // Reset scroll flag when initializing
             document.getElementById('add-product-form-row-btn').addEventListener('click', addProductFormRow);
             document.getElementById('submit-all-new-products-btn').addEventListener('click', submitAllNewProducts);
             addProductFormRow();
@@ -770,6 +769,7 @@
         }
         
         async function saveProductChanges() {
+            const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const button = document.getElementById('save-product-changes-btn');
             button.disabled = true;
@@ -800,7 +800,7 @@
             } else { 
                 modal.classList.add('hidden'); 
                 currentEditFile = null; 
-                await loadProducts({ scrollPosition: mainContent.scrollTop }); 
+                await loadProducts({ scrollPosition }); 
                 showAlert('Product updated!'); 
             }
             button.disabled = false;
@@ -811,7 +811,7 @@
             const updatePromises = reorderedIds.map((id, index) =>
                 db.from('products').update({ display_order: index }).eq('id', id)
             );
-
+            const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             try {
                 const results = await Promise.all(updatePromises);
@@ -820,20 +820,21 @@
             }
             catch (error) {
                 showAlert('Reorder failed: ' + error.message, true);
-                await loadProducts({ scrollPosition: mainContent.scrollTop }); // Reload to show the correct order on failure
             }
             finally {
+                await loadProducts({ scrollPosition });
                 showLoading(false);
             }
         }
 
         async function updateProductField(productId, field, value) {
+            const scrollPosition = mainContent.scrollTop;
             showLoading(true);
             const { error } = await db.from('products').update({ [field]: value }).eq('id', productId);
             showLoading(false);
             if (error) {
                 showAlert('Update failed: ' + error.message, true);
-                await loadProducts({ scrollPosition: mainContent.scrollTop }); 
+                await loadProducts({ scrollPosition }); 
             } else { 
                 const product = productsCache.find(p => p.id == productId); 
                 if(product) product[field] = value; 
@@ -1056,14 +1057,14 @@
             const product = productsCache.find(p => p.id == productId);
             const productName = product ? product.name : 'this product';
             if (confirm(`Are you sure you want to remove "${productName}"?`)) {
-                const scrollPosition = mainContent.scrollTop; // Capture scroll before action
+                const scrollPosition = mainContent.scrollTop;
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).eq('id', productId);
                 if (error) {
                     showAlert('Delete failed: ' + error.message, true);
                 } else {
                     showAlert('Product removed.');
-                    await loadProducts({ scrollPosition }); // Pass scroll position
+                    await loadProducts({ scrollPosition }); 
                 }
                 showLoading(false);
             }
