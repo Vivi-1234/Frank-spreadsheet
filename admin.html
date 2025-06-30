@@ -23,7 +23,7 @@
             --accent-hover: #DDDDDD; --text-primary: #FFFFFF; --text-secondary: #AAAAAA;
             --danger-color: #EF4444; --text-on-accent: #000000;
         }
-        /* ***** 重要修改：移除了全局的 html { scroll-behavior: smooth; } ***** */
+        /* 确保没有全局的平滑滚动，以允许JS即时滚动 */
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); }
         .panel { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.75rem; }
         aside { background-color: #000000; border-right: 1px solid var(--border-color); transition: transform 0.3s ease-in-out; }
@@ -352,10 +352,12 @@
             sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
             
-            // ***** 重要修改：恢复滚动位置的逻辑 *****
+            // ***** 最终解决方案 *****
             if (scrollPosition !== undefined) {
-                // 直接设置滚动位置，因为已经移除了平滑滚动效果
-                mainContent.scrollTop = scrollPosition;
+                // 使用 setTimeout 推迟滚动操作，确保DOM已完全渲染。
+                setTimeout(() => {
+                    mainContent.scrollTop = scrollPosition;
+                }, 0);
             }
         }
         
@@ -810,11 +812,12 @@
         }
 
         async function saveProductOrder(evt) {
+            const scrollPosition = mainContent.scrollTop;
             const reorderedIds = Array.from(evt.to.children).map(item => parseInt(item.dataset.id));
             const updatePromises = reorderedIds.map((id, index) =>
                 db.from('products').update({ display_order: index }).eq('id', id)
             );
-            const scrollPosition = mainContent.scrollTop;
+            
             showLoading(true);
             try {
                 const results = await Promise.all(updatePromises);
