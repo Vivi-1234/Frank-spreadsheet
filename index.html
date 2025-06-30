@@ -412,6 +412,7 @@
 
         function updateURL() {
             const url = new URL(window.location);
+            // Always reflect the current state of filters and page
             if (currentTagFilter && currentTagFilter !== 'all') {
                 url.searchParams.set('tag', currentTagFilter);
             } else {
@@ -423,7 +424,8 @@
             } else {
                 url.searchParams.delete('page');
             }
-            history.pushState({}, '', url);
+            // Use replaceState to avoid creating unnecessary browser history entries
+            history.replaceState({tag: currentTagFilter, category: currentCategoryFilter, page: currentPage}, '', url);
         }
         
         async function fetchProductsPage(page, options = { shouldScroll: false }) {
@@ -538,11 +540,7 @@
                     categoryFilterContainer.innerHTML = filterHTML;
                 }
                 
-                const urlParams = new URLSearchParams(window.location.search);
-                currentTagFilter = urlParams.get('tag') || 'all';
-                currentPage = parseInt(urlParams.get('page') || '1');
-                currentCategoryFilter = urlParams.has('tag') ? 'all' : (urlParams.get('category') || 'all'); 
-                
+                initializeFilters();
                 updateActiveUI();
                 fetchProductsPage(currentPage, { shouldScroll: urlParams.has('page') }); 
 
@@ -554,6 +552,13 @@
             lucide.createIcons();
             setupEventListeners();
             setupAnimations();
+        }
+
+        function initializeFilters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentTagFilter = urlParams.get('tag') || 'all';
+            currentPage = parseInt(urlParams.get('page') || '1');
+            currentCategoryFilter = 'all'; // Always start with all categories for a given tag filter
         }
 
         function updateActiveUI() {
@@ -585,7 +590,6 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    currentTagFilter = 'all'; // Reset tag filter when category is clicked
                     fetchProductsPage(1, { shouldScroll: true }); 
                     updateURL();
                     updateActiveUI();
@@ -606,12 +610,30 @@
                 const url = new URL(link.href, window.location.origin);
                 const tag = url.searchParams.get('tag');
 
-                if (tag) {
+                if (link.getAttribute('href').startsWith('/?tag=')) {
                     e.preventDefault();
                     handleTagClick(tag);
                 } else if (link.getAttribute('href') === '/') {
                     e.preventDefault();
                     handleTagClick('all');
+                }
+            });
+            
+            const mobileNav = document.getElementById('mobile-nav-content');
+            mobileNav?.addEventListener('click', e => {
+                 const link = e.target.closest('a.nav-link');
+                 if (!link) return;
+                 const url = new URL(link.href, window.location.origin);
+                 const tag = url.searchParams.get('tag');
+
+                if (link.getAttribute('href').startsWith('/?tag=')) {
+                    e.preventDefault();
+                    handleTagClick(tag);
+                    toggleMobileMenu(false);
+                } else if (link.getAttribute('href') === '/') {
+                    e.preventDefault();
+                    handleTagClick('all');
+                    toggleMobileMenu(false);
                 }
             });
 
@@ -623,7 +645,7 @@
                     updateURL();
                 }
             });
-
+            
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
             const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
