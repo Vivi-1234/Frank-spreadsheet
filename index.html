@@ -364,16 +364,15 @@
             
             if (currentCategoryFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => 
-                    p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter)
+                    (!p.category || p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter))
                 );
             }
             if (currentTagFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => 
-                    p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter)
+                    (!p.tags || p.tags.split(',').map(t => t.trim()).includes(currentTagFilter))
                 );
             }
             
-            console.log('Raw products data length:', allProducts.length);
             console.log('Filtered Products length:', filteredProducts.length);
             renderProducts('product-list-container', filteredProducts);
         }
@@ -487,10 +486,12 @@
                             el.classList.add('active');
                         }
                     });
+                } else {
+                    currentTagFilter = 'all';
                 }
+                currentCategoryFilter = 'all'; // Ensure initial category is 'all'
+                applyFiltersAndRender(); // Force initial render
 
-                // Initial render of products
-                applyFiltersAndRender();
             } catch (error) {
                 console.error('Error in loadAndRender:', error);
                 document.body.innerHTML = '<p class="text-center text-red-500 text-lg p-8">Error loading page content. Please try again later.</p>';
