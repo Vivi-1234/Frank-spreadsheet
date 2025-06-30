@@ -184,8 +184,6 @@
             aspect-ratio: 16 / 9;
         }
         #mobile-menu { transition: transform 0.3s ease-in-out; }
-
-        /* Copied from how-to-buy.html for discount code */
         #discount-code-box {
             background-color: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -290,9 +288,9 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const refId = urlParams.get('ref');
-        const tagFromUrl = urlParams.get('tag');
-
-        // Log an analytics event to Supabase
+        
+        // --- Core Logic ---
+        
         async function logEvent(eventType, eventValue = null) {
             try {
                 const { error } = await db.from('analytics_events').insert([{ 
@@ -305,7 +303,6 @@
             } catch (error) { console.error('Error in logEvent:', error); }
         }
         
-        // Append referral ID to product links if present
         function appendRefParam(url) {
             if (!refId || !url) return url;
             try {
@@ -315,55 +312,56 @@
             } catch(e) { return url; }
         }
         
-        // Render a list of products to a specific container
         function renderProducts(containerId, productArray) {
             const productContainer = document.getElementById(containerId);
             if (!productContainer) return;
-            
-            productContainer.innerHTML = '';
-            if (productArray.length > 0) {
-                productArray.forEach(p => {
-                    const now = new Date();
-                    const expiry = p.discount_expires_at ? new Date(p.discount_expires_at) : null;
-                    const showDiscount = p.discount_is_active && p.discount_price && (!expiry || expiry > now);
-                    const usdPrice = (p.price * cnyToUsdRate).toFixed(2);
-                    const usdDiscountPrice = p.discount_price ? (p.discount_price * cnyToUsdRate).toFixed(2) : null;
-                    
-                    let priceHTML = `<p class="font-bold text-lg text-gray-100 mt-2">$${usdPrice}</p>`;
-                    if (showDiscount && usdDiscountPrice) {
-                        priceHTML = `<p class="font-bold text-lg text-red-400 mt-2">$${usdDiscountPrice} <span class="text-base text-gray-500 font-normal line-through ml-2">$${usdPrice}</span></p>`;
-                    }
-                    
-                    let discountBadgeHTML = '';
-                    if (showDiscount && p.discount_factor) {
-                        const percentageOff = Math.round((1 - p.discount_factor) * 100);
-                        if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
-                    }
-                    
-                    productContainer.innerHTML += `
-                        <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
-                            <div class="img-wrapper">
-                                <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
-                            </div>
-                            <div class="p-4">
-                                <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
-                                ${priceHTML}
-                            </div>
-                            ${discountBadgeHTML}
-                        </a>`;
-                });
-            } else {
+
+            if (!productArray || productArray.length === 0) {
                 productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found for this filter.</p>`;
+                return;
             }
+            
+            const productsHTML = productArray.map(p => {
+                const now = new Date();
+                const expiry = p.discount_expires_at ? new Date(p.discount_expires_at) : null;
+                const showDiscount = p.discount_is_active && p.discount_price && (!expiry || expiry > now);
+                const usdPrice = (p.price * cnyToUsdRate).toFixed(2);
+                const usdDiscountPrice = p.discount_price ? (p.discount_price * cnyToUsdRate).toFixed(2) : null;
+                
+                let priceHTML = `<p class="font-bold text-lg text-gray-100 mt-2">$${usdPrice}</p>`;
+                if (showDiscount && usdDiscountPrice) {
+                    priceHTML = `<p class="font-bold text-lg text-red-400 mt-2">$${usdDiscountPrice} <span class="text-base text-gray-500 font-normal line-through ml-2">$${usdPrice}</span></p>`;
+                }
+                
+                let discountBadgeHTML = '';
+                if (showDiscount && p.discount_factor) {
+                    const percentageOff = Math.round((1 - p.discount_factor) * 100);
+                    if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
+                }
+                
+                return `
+                    <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
+                        <div class="img-wrapper">
+                            <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
+                            ${priceHTML}
+                        </div>
+                        ${discountBadgeHTML}
+                    </a>`;
+            }).join('');
+
+            productContainer.innerHTML = productsHTML;
         }
         
-        // Filter the main product list and re-render
         function applyFiltersAndRender() {
             let filteredProducts = allProducts;
             
             if (currentCategoryFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter));
             }
+            
             if (currentTagFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter));
             }
@@ -371,16 +369,13 @@
             renderProducts('product-list-container', filteredProducts);
         }
 
-        // Main function to load all data from Supabase and render the page
         async function loadAndRender() {
             try {
-                // Fetch exchange rate
                 try {
                     const rateResponse = await fetch('https://api.frankfurter.app/latest?from=CNY&to=USD');
                     if (rateResponse.ok) { cnyToUsdRate = (await rateResponse.json()).rates.USD; }
                 } catch (rateError) { console.error('Error fetching exchange rate:', rateError); }
 
-                // Fetch all data in parallel
                 const [settingsRes, navRes, tagsRes, socialRes, productsRes, flashSaleSettingsRes, flashSaleProductsRes] = await Promise.all([
                     db.from('settings').select('*').limit(1).single(),
                     db.from('navigation').select('*').order('display_order'),
@@ -399,7 +394,6 @@
                 const flashSaleSettings = flashSaleSettingsRes.data;
                 const flashSaleProducts = (flashSaleProductsRes.data || []).map(item => item.products).filter(Boolean);
 
-                // Render Flash Sale section if active
                 const flashSaleSection = document.getElementById('flash-sale-section');
                 if (flashSaleSettings?.is_active && flashSaleSettings.end_time) {
                     const endTime = new Date(flashSaleSettings.end_time);
@@ -410,7 +404,6 @@
                     }
                 }
 
-                // Render Hero section content
                 if (settings) {
                     document.title = "Franks AUTHENTIC Spreadsheet";
                     document.getElementById('site-title').textContent = settings.site_title || 'Discover Your Style';
@@ -420,12 +413,11 @@
                     }
                 }
                 
-                // Render Navigation for both Desktop and Mobile
                 const mainNavContainer = document.getElementById('main-nav');
                 const mobileNavContent = document.getElementById('mobile-nav-content');
                 if (mainNavContainer && mobileNavContent) {
-                    let desktopNavHTML = `<a href="/" class="nav-link text-sm font-medium active">Home</a><a href="/how-to-buy" class="nav-link text-sm font-medium">How-to-buy</a>`;
-                    let mobileNavHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium active">Home</a><a href="/how-to-buy" class="nav-link text-lg md:text-sm font-medium">How-to-buy</a>`;
+                    let desktopNavHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link text-sm font-medium">How-to-buy</a>`;
+                    let mobileNavHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link text-lg md:text-sm font-medium">How-to-buy</a>`;
                     
                     desktopNavHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-sm font-medium">${tag.name}</a>`).join('');
                     mobileNavHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-lg md:text-sm font-medium">${tag.name}</a>`).join('');
@@ -434,18 +426,15 @@
                     mobileNavContent.innerHTML = mobileNavHTML;
                 }
 
-                // Render Social Icons
                 const socialSidebar = document.getElementById('social-sidebar');
                 const socialFooter = document.getElementById('social-footer-container');
                 if (socialLinks && socialLinks.length > 0) {
                     if (socialSidebar) socialSidebar.innerHTML = '';
                     if (socialFooter) socialFooter.innerHTML = '';
-
                     socialLinks.forEach(link => {
                         const iconImage = `<img src="${link.icon_url}" alt="${link.platform_name} logo" class="w-full h-full object-cover rounded-full">`;
                         let finalUrl = link.link_url || '#';
                         if (finalUrl !== '#' && !finalUrl.startsWith('http')) finalUrl = `https://${finalUrl}`;
-                        
                         if (socialSidebar) {
                             socialSidebar.innerHTML += `<a href="${finalUrl}" target="_blank" class="social-sidebar-icon" title="${link.platform_name}">${iconImage}</a>`;
                         }
@@ -455,28 +444,27 @@
                     });
                 }
                 
-                // Render Category Filters
                 const categoryFilterContainer = document.getElementById('category-filter-container');
                 if (categoryFilterContainer) {
-                    let filterHTML = '<button class="filter-btn active" data-category="all">All</button>';
+                    let filterHTML = '<button class="filter-btn" data-category="all">All</button>';
                     const validNavItems = navItems.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home');
                     filterHTML += validNavItems.map(link => `<button class="filter-btn" data-category="${link.link_text}">${link.link_text}</button>`).join('');
                     categoryFilterContainer.innerHTML = filterHTML;
                 }
                 
-                // Set initial filter from URL if present
+                // Initialize filters based on URL
+                const tagFromUrl = new URLSearchParams(window.location.search).get('tag');
                 if (tagFromUrl) {
                     currentTagFilter = tagFromUrl;
-                    document.querySelectorAll(`.nav-link`).forEach(el => {
-                        el.classList.remove('active');
-                        if (el.href.includes(`tag=${encodeURIComponent(tagFromUrl)}`)) {
-                            el.classList.add('active');
-                        }
-                    });
+                    currentCategoryFilter = 'all'; // When a tag is active, category should be all
+                } else {
+                    currentTagFilter = 'all';
+                    currentCategoryFilter = 'all';
                 }
 
-                // Initial render of products
+                updateActiveFilters();
                 applyFiltersAndRender();
+
             } catch (error) {
                 console.error('Error in loadAndRender:', error);
                 document.body.innerHTML = '<p class="text-center text-red-500 text-lg p-8">Error loading page content. Please try again later.</p>';
@@ -497,6 +485,22 @@
             setupEventListeners();
         }
         
+        function updateActiveFilters() {
+            // Update active state for category buttons
+            document.querySelectorAll('#category-filter-container .filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === currentCategoryFilter);
+            });
+            // Update active state for nav links (tags)
+            document.querySelectorAll('#main-nav .nav-link, #mobile-nav-content .nav-link').forEach(link => {
+                const linkTag = new URL(link.href).searchParams.get('tag');
+                if (link.href.endsWith('/')) { // Home link
+                    link.classList.toggle('active', currentTagFilter === 'all' && currentCategoryFilter === 'all');
+                } else if (linkTag) {
+                    link.classList.toggle('active', linkTag === currentTagFilter);
+                }
+            });
+        }
+
         function setupEventListeners() {
             document.body.addEventListener('click', e => {
                 const card = e.target.closest('.product-card');
@@ -507,16 +511,42 @@
             categoryContainer?.addEventListener('click', e => {
                 const button = e.target.closest('.filter-btn');
                 if (button) {
-                    categoryContainer.querySelector('.active')?.classList.remove('active');
-                    button.classList.add('active');
                     currentCategoryFilter = button.dataset.category;
-                    currentTagFilter = 'all'; 
-                    document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
+                    currentTagFilter = 'all'; // Clicking a category resets the tag filter
+                    history.pushState(null, '', window.location.pathname); // Clear URL params
+                    updateActiveFilters();
                     applyFiltersAndRender();
                 }
             });
 
-            // Mobile Menu
+            const mainNav = document.getElementById('main-nav');
+            mainNav?.addEventListener('click', e => {
+                const link = e.target.closest('a');
+                if (link && link.href.includes('?tag=')) {
+                    e.preventDefault();
+                    const url = new URL(link.href);
+                    currentTagFilter = url.searchParams.get('tag');
+                    currentCategoryFilter = 'all'; // Clicking a tag resets the category filter
+                    history.pushState(null, '', url.search);
+                    updateActiveFilters();
+                    applyFiltersAndRender();
+                }
+            });
+
+            const mobileNav = document.getElementById('mobile-nav-content');
+            mobileNav?.addEventListener('click', e => {
+                 const link = e.target.closest('a');
+                if (link && link.href.includes('?tag=')) {
+                    e.preventDefault();
+                    const url = new URL(link.href);
+                    currentTagFilter = url.searchParams.get('tag');
+                    currentCategoryFilter = 'all';
+                    history.pushState(null, '', url.search);
+                    updateActiveFilters();
+                    applyFiltersAndRender();
+                }
+            });
+
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
             const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
@@ -531,7 +561,6 @@
             closeMobileMenuBtn.addEventListener('click', () => toggleMobileMenu(false));
             mobileMenuOverlay.addEventListener('click', () => toggleMobileMenu(false));
 
-            // Discount Code Copy
             const discountBox = document.getElementById('discount-code-box');
             if (discountBox) {
                 const icon = discountBox.querySelector('i');
