@@ -197,6 +197,12 @@
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+            margin-top: 1rem;
+        }
         .pagination button {
             padding: 0.5rem 1rem;
             border-radius: 9999px;
@@ -494,12 +500,13 @@
                 }
                 
                 // Render Category Filters
-                const categoryFilterContainer = document.getElementById('category-filter-container');
-                if (categoryFilterContainer) {
+                const categoryContainer = document.getElementById('category-filter-container');
+                if (categoryContainer) {
+                    categoryContainer.innerHTML = ''; // Clear existing content
                     let filterHTML = '<button class="filter-btn active" data-category="all">All</button>';
                     const validNavItems = navRes.data ? navRes.data.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home') : [];
                     filterHTML += validNavItems.map(link => `<button class="filter-btn" data-category="${link.link_text}">${link.link_text}</button>`).join('');
-                    categoryFilterContainer.innerHTML = filterHTML || '<p class="text-center text-gray-500">No categories available.</p>';
+                    categoryContainer.innerHTML = filterHTML || '<p class="text-center text-gray-500">No categories available.</p>';
                 }
                 
                 // Set initial filter from URL if present
@@ -567,18 +574,26 @@
             });
             
             const categoryContainer = document.getElementById('category-filter-container');
-            categoryContainer?.addEventListener('click', e => {
-                const button = e.target.closest('.filter-btn');
-                if (button) {
-                    categoryContainer.querySelector('.active')?.classList.remove('active');
-                    button.classList.add('active');
-                    currentCategoryFilter = button.dataset.category;
-                    currentTagFilter = tagFromUrl || 'all'; // 保留 tagFromUrl，fallback to 'all'
-                    document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
-                    currentPage = 1; // Reset to first page on category change
-                    loadAndRender(currentPage);
-                }
-            });
+            if (categoryContainer) {
+                categoryContainer.innerHTML = ''; // Clear existing content
+                let filterHTML = '<button class="filter-btn active" data-category="all">All</button>';
+                const validNavItems = navRes.data ? navRes.data.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home') : [];
+                filterHTML += validNavItems.map(link => `<button class="filter-btn" data-category="${link.link_text}">${link.link_text}</button>`).join('');
+                categoryContainer.innerHTML = filterHTML || '<p class="text-center text-gray-500">No categories available.</p>';
+
+                categoryContainer.addEventListener('click', e => {
+                    const button = e.target.closest('.filter-btn');
+                    if (button) {
+                        categoryContainer.querySelector('.active')?.classList.remove('active');
+                        button.classList.add('active');
+                        currentCategoryFilter = button.dataset.category;
+                        currentTagFilter = tagFromUrl || 'all'; // 保留 tagFromUrl，fallback to 'all'
+                        document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
+                        currentPage = 1; // Reset to first page on category change
+                        loadAndRender(currentPage);
+                    }
+                });
+            }
 
             // Mobile Menu
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
