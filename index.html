@@ -14,7 +14,7 @@
     <style>
         html {
             scroll-behavior: smooth;
-            scroll-padding-top: 80px; /* This is the fix! */
+            scroll-padding-top: 80px; /* Keeps space for sticky header */
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -409,6 +409,22 @@
             
             paginationContainer.innerHTML = paginationHTML;
         }
+
+        function updateURL() {
+            const url = new URL(window.location);
+            if (currentTagFilter && currentTagFilter !== 'all') {
+                url.searchParams.set('tag', currentTagFilter);
+            } else {
+                url.searchParams.delete('tag');
+            }
+
+            if (currentPage > 1) {
+                url.searchParams.set('page', currentPage);
+            } else {
+                url.searchParams.delete('page');
+            }
+            history.pushState({}, '', url);
+        }
         
         async function fetchProductsPage(page, options = { shouldScroll: false }) {
             currentPage = page;
@@ -525,8 +541,8 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 currentTagFilter = urlParams.get('tag') || 'all';
                 currentPage = parseInt(urlParams.get('page') || '1');
-                currentCategoryFilter = 'all'; 
-
+                currentCategoryFilter = urlParams.has('tag') ? 'all' : (urlParams.get('category') || 'all'); 
+                
                 updateActiveUI();
                 fetchProductsPage(currentPage, { shouldScroll: urlParams.has('page') }); 
 
@@ -569,7 +585,9 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
+                    currentTagFilter = 'all'; // Reset tag filter when category is clicked
                     fetchProductsPage(1, { shouldScroll: true }); 
+                    updateURL();
                     updateActiveUI();
                 }
             });
@@ -578,6 +596,7 @@
                 currentTagFilter = tag;
                 currentCategoryFilter = 'all';
                 fetchProductsPage(1, { shouldScroll: true }); 
+                updateURL();
                 updateActiveUI();
             };
 
@@ -589,11 +608,9 @@
 
                 if (tag) {
                     e.preventDefault();
-                    history.pushState({tag}, '', url.search);
                     handleTagClick(tag);
                 } else if (link.getAttribute('href') === '/') {
                     e.preventDefault();
-                    history.pushState({}, '', '/');
                     handleTagClick('all');
                 }
             });
@@ -603,10 +620,10 @@
                 if (button && !button.disabled) {
                     const page = parseInt(button.dataset.page);
                     fetchProductsPage(page, { shouldScroll: true });
+                    updateURL();
                 }
             });
 
-            // --- Other listeners ---
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
             const closeMobileMenuBtn = document.getElementById('close-mobile-menu-btn');
             const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
