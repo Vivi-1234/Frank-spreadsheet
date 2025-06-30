@@ -137,7 +137,7 @@
             font-weight: 700;
         }
         .timer-label {
-            font-size: 0.625rem; /* 10px */
+            font-size: 0.625rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #9CA3AF;
@@ -147,7 +147,7 @@
             .timer-label { font-size: 0.75rem; margin-top: 0.25rem; letter-spacing: 0.1em;}
         }
         .product-title {
-            height: 3rem; /* for 2 lines */
+            height: 3rem;
             line-height: 1.5rem;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -270,7 +270,7 @@
                 <div id="social-footer-container" class="flex md:hidden justify-center items-center space-x-4 mt-6"></div>
             </div>
             <div class="mt-10 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
-                <p>&copy; 2025 Franks AUTHENTIC Spreadsheet. All Rights Reserved.</p>
+                <p>© 2025 Franks AUTHENTIC Spreadsheet. All Rights Reserved.</p>
             </div>
         </div>
     </footer>
@@ -313,7 +313,6 @@
             } catch(e) { return url; }
         }
         
-        // **MODIFIED FUNCTION**
         // Render a list of products using a more stable method
         function renderProducts(containerId, productArray) {
             const productContainer = document.getElementById(containerId);
@@ -360,15 +359,27 @@
         
         // Filter the main product list and re-render
         function applyFiltersAndRender() {
+            console.log('Applying filters - Category:', currentCategoryFilter, 'Tag:', currentTagFilter);
             let filteredProducts = allProducts;
-            
+
             if (currentCategoryFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter));
+                filteredProducts = filteredProducts.filter(p => 
+                    p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter)
+                );
             }
             if (currentTagFilter !== 'all') {
-                filteredProducts = filteredProducts.filter(p => p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter));
+                filteredProducts = filteredProducts.filter(p => {
+                    const tags = p.tags ? p.tags.split(',').map(t => t.trim()) : [];
+                    return tags.includes(currentTagFilter);
+                });
+            } else {
+                // When tag filter is 'all', include products with or without tags
+                filteredProducts = filteredProducts.filter(p => 
+                    !currentCategoryFilter || (p.category && p.category.split(',').map(c => c.trim()).includes(currentCategoryFilter))
+                );
             }
-            
+
+            console.log('Filtered Products:', filteredProducts);
             renderProducts('product-list-container', filteredProducts);
         }
 
@@ -399,6 +410,8 @@
                 const socialLinks = socialRes.data;
                 const flashSaleSettings = flashSaleSettingsRes.data;
                 const flashSaleProducts = (flashSaleProductsRes.data || []).map(item => item.products).filter(Boolean);
+
+                console.log('Loaded All Products:', allProducts);
 
                 // Render Flash Sale section if active
                 const flashSaleSection = document.getElementById('flash-sale-section');
@@ -474,6 +487,8 @@
                             el.classList.add('active');
                         }
                     });
+                } else {
+                    currentTagFilter = 'all';
                 }
 
                 // Initial render of products
