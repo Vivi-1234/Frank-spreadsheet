@@ -369,7 +369,7 @@
             }
             if (currentTagFilter !== 'all') {
                 filteredProducts = filteredProducts.filter(p => 
-                    (!p.tags || p.tags.split(',').map(t => t.trim()).includes(currentTagFilter))
+                    p.tags && p.tags.split(',').map(t => t.trim()).includes(currentTagFilter)
                 );
             }
             
