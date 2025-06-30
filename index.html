@@ -373,7 +373,7 @@
                 );
             }
             
-            console.log('Filtered Products length:', filteredProducts.length);
+            console.log('Filtered Products length:', filteredProducts.length, 'Sample:', filteredProducts.slice(0, 2));
             renderProducts('product-list-container', filteredProducts);
         }
 
@@ -402,9 +402,13 @@
                     document.getElementById('product-list-container').innerHTML = `<p class="text-center text-red-500 text-lg p-8">Error loading products: ${productsRes.error.message}. Please try again later.</p>`;
                     return;
                 }
+                if (navRes.error) {
+                    console.error('Navigation query failed:', navRes.error);
+                    document.getElementById('category-filter-container').innerHTML = '<p class="text-center text-red-500">Error loading categories.</p>';
+                }
 
                 allProducts = productsRes.data || [];
-                console.log('Raw products data:', allProducts);
+                console.log('Raw products data length:', allProducts.length, 'Sample:', allProducts.slice(0, 2));
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
@@ -472,9 +476,9 @@
                 const categoryFilterContainer = document.getElementById('category-filter-container');
                 if (categoryFilterContainer) {
                     let filterHTML = '<button class="filter-btn active" data-category="all">All</button>';
-                    const validNavItems = navItems.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home');
+                    const validNavItems = navRes.data ? navRes.data.filter(item => item.link_text && item.link_text.toLowerCase() !== 'home') : [];
                     filterHTML += validNavItems.map(link => `<button class="filter-btn" data-category="${link.link_text}">${link.link_text}</button>`).join('');
-                    categoryFilterContainer.innerHTML = filterHTML;
+                    categoryFilterContainer.innerHTML = filterHTML || '<p class="text-center text-gray-500">No categories available.</p>';
                 }
                 
                 // Set initial filter from URL if present
