@@ -360,7 +360,7 @@
         // Filter the main product list and re-render
         function applyFiltersAndRender() {
             console.log('Applying filters - Category:', currentCategoryFilter, 'Tag:', currentTagFilter);
-            let filteredProducts = allProducts.filter(p => p.is_active); // Only active products
+            let filteredProducts = allProducts.filter(p => p.is_active);
 
             // Only apply category filter when not 'all'
             if (currentCategoryFilter !== 'all') {
@@ -377,7 +377,7 @@
                 });
             }
 
-            console.log('Filtered Products:', filteredProducts);
+            console.log('Filtered Products count:', filteredProducts.length, 'Sample:', filteredProducts.slice(0, 2));
             renderProducts('product-list-container', filteredProducts);
         }
 
@@ -396,10 +396,16 @@
                     db.from('navigation').select('*').order('display_order'),
                     db.from('product_tags').select('*').order('display_order'),
                     db.from('social_links').select('*').order('display_order'),
-                    db.from('products').select(`*`).eq('is_active', true).order('display_order'),
+                    db.from('products').select('*').eq('is_active', 'TRUE').order('display_order'),
                     db.from('flash_sale_settings').select('*').single(),
                     db.from('flash_sale_products').select('*, products(*)').order('display_order')
                 ]);
+
+                if (productsRes.error) {
+                    console.error('Products query failed:', productsRes.error);
+                    document.getElementById('product-list-container').innerHTML = `<p class="text-center text-red-500 text-lg p-8">Error loading products. Please try again later.</p>`;
+                    return;
+                }
 
                 allProducts = productsRes.data.map(p => ({
                     ...p,
