@@ -197,6 +197,21 @@
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
         }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            background-color: #1a1a1a;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .pagination button.active {
+            background-color: #fff;
+            color: #0D0D0D;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -284,7 +299,7 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let allProducts = [], currentCategoryFilter = 'all', currentTagFilter = 'all';
-        let cnyToUsdRate = 0.14, userCountryCode = null;
+        let cnyToUsdRate = 0.14, userCountryCode = null, currentPage = 1, itemsPerPage = 48, totalProducts = 0;
 
         const urlParams = new URLSearchParams(window.location.search);
         const refId = urlParams.get('ref');
@@ -378,7 +393,7 @@
         }
 
         // Main function to load all data from Supabase and render the page
-        async function loadAndRender() {
+        async function loadAndRender(page = 1) {
             try {
                 // Fetch exchange rate
                 try {
@@ -386,13 +401,19 @@
                     if (rateResponse.ok) { cnyToUsdRate = (await rateResponse.json()).rates.USD; }
                 } catch (rateError) { console.error('Error fetching exchange rate:', rateError); }
 
-                // Fetch all data in parallel
+                // Fetch total count for pagination
+                const countRes = await db.from('products').select('*', { count: 'exact' }).eq('is_active', 'TRUE');
+                totalProducts = countRes.count || 0;
+
+                // Fetch current page data
+                const from = (page - 1) * itemsPerPage;
+                const to = from + itemsPerPage - 1;
                 const [settingsRes, navRes, tagsRes, socialRes, productsRes, flashSaleSettingsRes, flashSaleProductsRes] = await Promise.all([
                     db.from('settings').select('*').limit(1).single(),
                     db.from('navigation').select('*').order('display_order'),
                     db.from('product_tags').select('*').order('display_order'),
                     db.from('social_links').select('*').order('display_order'),
-                    db.from('products').select('*').eq('is_active', 'TRUE').order('display_order').limit(200),
+                    db.from('products').select('*').eq('is_active', 'TRUE').order('display_order').range(from, to),
                     db.from('flash_sale_settings').select('*').single(),
                     db.from('flash_sale_products').select('*, products(*)').order('display_order')
                 ]);
@@ -408,7 +429,7 @@
                 }
 
                 allProducts = productsRes.data || [];
-                console.log('Raw products data length:', allProducts.length, 'Sample:', allProducts.slice(0, 2));
+                console.log('Raw products data length:', allProducts.length, 'Page:', page, 'Total:', totalProducts);
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
                 const tags = tagsRes.data || [];
@@ -496,6 +517,9 @@
                 currentCategoryFilter = 'all'; // Ensure initial category is 'all'
                 applyFiltersAndRender(); // Force initial render
 
+                // Render pagination
+                renderPagination();
+
             } catch (error) {
                 console.error('Error in loadAndRender:', error);
                 document.body.innerHTML = '<p class="text-center text-red-500 text-lg p-8">Error loading page content. Please try again later.</p>';
@@ -515,7 +539,27 @@
             
             setupEventListeners();
         }
-        
+
+        function renderPagination() {
+            const totalPages = Math.ceil(totalProducts / itemsPerPage);
+            const paginationContainer = document.createElement('div');
+            paginationContainer.className = 'flex justify-center gap-2 mt-4 pagination';
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.textContent = i;
+                button.className = `px-3 py-1 rounded ${currentPage === i ? 'bg-white text-black' : 'bg-gray-800 text-white'} hover:bg-gray-700`;
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    loadAndRender(currentPage);
+                });
+                paginationContainer.appendChild(button);
+            }
+            const productSection = document.getElementById('product-section');
+            const existingPagination = productSection.querySelector('.pagination');
+            if (existingPagination) existingPagination.remove();
+            productSection.appendChild(paginationContainer);
+        }
+
         function setupEventListeners() {
             document.body.addEventListener('click', e => {
                 const card = e.target.closest('.product-card');
@@ -531,7 +575,8 @@
                     currentCategoryFilter = button.dataset.category;
                     currentTagFilter = tagFromUrl || 'all'; // 保留 tagFromUrl，fallback to 'all'
                     document.querySelectorAll('#main-nav .nav-link.active, #mobile-nav-content .nav-link.active').forEach(el => el.classList.remove('active'));
-                    applyFiltersAndRender();
+                    currentPage = 1; // Reset to first page on category change
+                    loadAndRender(currentPage);
                 }
             });
 
