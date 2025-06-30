@@ -123,6 +123,7 @@
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
         let howToBuySettingsCache = null;
+        let shouldPreserveScroll = false; // Flag to preserve scroll position
 
         // --- DOM Elements ---
         const authScreen = document.getElementById('auth-screen');
@@ -284,6 +285,7 @@
         }
 
         async function initProductsPanel() {
+            shouldPreserveScroll = false; // Reset scroll flag when initializing
             document.getElementById('add-product-form-row-btn').addEventListener('click', addProductFormRow);
             document.getElementById('submit-all-new-products-btn').addEventListener('click', submitAllNewProducts);
             addProductFormRow();
@@ -291,6 +293,11 @@
         }
         
         async function loadProducts() {
+            let scrollPosition = 0;
+            if (shouldPreserveScroll) {
+                scrollPosition = mainContent.scrollTop;
+            }
+
             const productListEl = document.getElementById('product-list');
             if (!productListEl) return;
             
@@ -350,6 +357,11 @@
             if (sortableInstance) sortableInstance.destroy();
             sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
+            
+            if (shouldPreserveScroll) {
+                mainContent.scrollTop = scrollPosition;
+                shouldPreserveScroll = false; // Reset the flag
+            }
         }
         
         async function loadFlashSaleData() {
@@ -757,6 +769,7 @@
                 document.getElementById('add-product-forms-container').innerHTML = '';
                 newProductFiles.clear();
                 addProductFormRow();
+                shouldPreserveScroll = true;
                 await loadProducts();
             }
         }
@@ -787,8 +800,15 @@
             };
             const { error } = await db.from('products').update(updates).eq('id', productId);
             showLoading(false);
-            if (error) showAlert('Save failed: ' + error.message, true);
-            else { modal.classList.add('hidden'); currentEditFile = null; await loadProducts(); showAlert('Product updated!'); }
+            if (error) { 
+                showAlert('Save failed: ' + error.message, true);
+            } else { 
+                modal.classList.add('hidden'); 
+                currentEditFile = null; 
+                shouldPreserveScroll = true;
+                await loadProducts(); 
+                showAlert('Product updated!'); 
+            }
             button.disabled = false;
         }
 
@@ -806,6 +826,7 @@
             }
             catch (error) {
                 showAlert('Reorder failed: ' + error.message, true);
+                shouldPreserveScroll = true;
                 await loadProducts(); // Reload to show the correct order on failure
             }
             finally {
@@ -817,8 +838,11 @@
             showLoading(true);
             const { error } = await db.from('products').update({ [field]: value }).eq('id', productId);
             showLoading(false);
-            if (error) { showAlert('Update failed: ' + error.message, true); await loadProducts(); }
-            else { 
+            if (error) {
+                showAlert('Update failed: ' + error.message, true);
+                shouldPreserveScroll = true;
+                await loadProducts(); 
+            } else { 
                 const product = productsCache.find(p => p.id == productId); 
                 if(product) product[field] = value; 
             }
@@ -847,7 +871,6 @@
             button.disabled = true;
 
             try {
-                // 1. Update general settings
                 if (howToBuySettingsCache && howToBuySettingsCache.id) {
                     const settingsUpdate = {
                         video_url: document.getElementById('how-to-buy-video-url').value.trim() || null,
@@ -1047,6 +1070,7 @@
                     showAlert('Delete failed: ' + error.message, true);
                 } else {
                     showAlert('Product removed.');
+                    shouldPreserveScroll = true; // Set flag to preserve scroll
                     await loadProducts(); // Refresh the list
                 }
                 showLoading(false);
@@ -1191,6 +1215,7 @@
                 showLoading(true);
                 const { error } = await db.from('products').update({ is_active: false }).in('id', selectedIds);
                 if (error) { showAlert('Delete failed: ' + error.message, true); }
+                shouldPreserveScroll = true;
                 await loadProducts();
                 showLoading(false);
             }
@@ -1206,6 +1231,7 @@
                 try {
                     const updatePromises = selectedIds.map(id => db.from('products').update({ discount_is_active: turnOn }).eq('id', id));
                     await Promise.all(updatePromises);
+                    shouldPreserveScroll = true;
                     await loadProducts();
                 } catch (error) { showAlert('Bulk update failed: ' + error.message, true);
                 } finally { showLoading(false); }
