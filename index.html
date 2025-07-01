@@ -548,7 +548,7 @@
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
-            let query = db.from('products').select('*, brands(name)').eq('is_active', true);
+            let query = db.from('products').select('*, brands(name)', { count: 'exact' }).eq('is_active', true);
 
             if (currentCategoryFilter !== 'all') {
                 query = query.like('category', `%${currentCategoryFilter}%`);
@@ -560,8 +560,6 @@
                 query = query.ilike('name', `%${currentSearchQuery}%`);
             }
 
-            // ***** UPDATED: Smart Sorting Logic *****
-            // Sort by whether a product has tags (nulls and empty strings last), then by the original display order.
             query = query.order('tags', { ascending: false, nullsFirst: false })
                          .order('display_order', { ascending: true })
                          .range(from, to);
@@ -877,19 +875,20 @@
 
             const discountBox = document.getElementById('discount-code-box');
             if (discountBox) {
-                const icon = discountBox.querySelector('i');
+                const iconContainer = discountBox.querySelector('i').parentElement;
                 const textSpan = discountBox.querySelector('#discount-text');
                 const originalText = textSpan.innerHTML;
+                const originalIconHTML = iconContainer.innerHTML;
 
                 discountBox.addEventListener('click', () => {
                     navigator.clipboard.writeText('Frank').then(() => {
                         textSpan.textContent = 'Copied!';
-                        icon.outerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i>`;
+                        iconContainer.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i>`;
                         lucide.createIcons();
                         
                         setTimeout(() => {
                             textSpan.innerHTML = originalText;
-                            icon.outerHTML = `<i data-lucide="gift" class="h-4 w-4 mr-2 text-gray-400"></i>`;
+                            iconContainer.innerHTML = originalIconHTML;
                             lucide.createIcons();
                         }, 2000);
                     }).catch(err => {
