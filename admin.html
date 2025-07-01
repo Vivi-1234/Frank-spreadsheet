@@ -22,7 +22,6 @@
             --bg-main: #000000; --bg-panel: #111111; --border-color: #222222; --accent-color: #FFFFFF;
             --accent-hover: #DDDDDD; --text-primary: #FFFFFF; --text-secondary: #AAAAAA;
             --danger-color: #EF4444; --text-on-accent: #000000;
-            --success-color: #22C55E;
         }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); }
         .panel { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.75rem; }
@@ -51,7 +50,7 @@
         input:checked + .toggle-slider { background-color: var(--accent-color); }
         input:checked + .toggle-slider:before { background-color: var(--text-on-accent); transform: translateX(16px); }
         .custom-dropdown { position: relative; }
-        .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; min-width: 16rem; background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.5rem; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); z-index: 50; margin-top: 4px; }
+        .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.5rem; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); z-index: 50; margin-top: 4px; }
         .dropdown-menu.up { top: auto; bottom: 100%; }
         .dropdown-menu.active { display: block; }
         .dropdown-item { padding: 0.5rem 0.75rem; cursor: pointer; display: flex; align-items: center; color: var(--text-secondary); }
@@ -67,7 +66,7 @@
         span.flatpickr-weekday, .numInput, .numInputWrapper span, .flatpickr-months .flatpickr-prev-month svg, .flatpickr-months .flatpickr-next-month svg { color: var(--text-secondary) !important; fill: var(--text-secondary) !important; }
         .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: var(--text-primary) !important; }
         table thead { background-color: #1a1a1a; color: var(--text-secondary); }
-        table tbody tr { border-bottom: 1px solid var(--border-color); transition: opacity 0.3s ease, max-height 0.5s ease, padding 0.5s ease; }
+        table tbody tr { border-bottom: 1px solid var(--border-color); }
         table tbody tr:last-child { border-bottom: none; }
         table tbody tr:hover { background-color: #1a1a1a; }
         .sortable-ghost { background: #222; opacity: 0.5; }
@@ -79,37 +78,6 @@
             background-color: var(--accent-color);
             color: var(--text-on-accent);
             border-color: var(--accent-color);
-        }
-        .editable-cell:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-        }
-        @keyframes flash-success {
-            0% { background-color: transparent; }
-            50% { background-color: rgba(34, 197, 94, 0.3); }
-            100% { background-color: transparent; }
-        }
-        .flash-success {
-            animation: flash-success 0.7s ease-out;
-        }
-        @keyframes flash-error {
-            0% { background-color: transparent; }
-            50% { background-color: rgba(239, 68, 68, 0.3); }
-            100% { background-color: transparent; }
-        }
-        .flash-error {
-            animation: flash-error 0.7s ease-out;
-        }
-        .row-deleting {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .row-removing {
-            max-height: 0;
-            opacity: 0;
-            transform: scaleY(0);
-            padding-top: 0;
-            padding-bottom: 0;
         }
     </style>
 </head>
@@ -145,7 +113,6 @@
         <div class="panel w-full max-w-2xl"><div class="p-6 border-b border-border-color flex justify-between items-center"><h3 class="text-lg font-semibold">Edit Product</h3><button id="close-modal-btn" class="p-1 rounded-full hover:bg-gray-700"><i data-lucide="x" class="h-5 w-5 text-gray-400"></i></button></div><div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"><input type="hidden" id="edit-product-id"><div id="edit-image-paste-box" class="relative p-4 rounded-lg bg-black text-center cursor-pointer text-gray-500 border-2 border-dashed border-gray-600 hover:border-accent-color"><p id="edit-image-placeholder">Click, drag, or paste an image</p><img id="edit-preview-image" src="" class="hidden max-h-32 mx-auto rounded mt-2"><button id="delete-image-btn" class="hidden absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><i data-lucide="trash-2" class="h-4 w-4"></i></button></div><input type="file" id="edit-image-input" class="hidden" accept="image/*"><div><label class="label">Product Name</label><input type="text" id="edit-product-name" class="input mt-1"></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="label">Original Price (CNY)</label><input type="number" id="edit-product-price" class="input mt-1"></div><div><label class="label">Target URL</label><input type="text" id="edit-product-target-url" class="input mt-1" placeholder="https://store.com/product/..."></div></div><div id="edit-brand-container"><label class="label">Brand</label><select id="edit-product-brand" class="input mt-1"></select></div><div id="edit-tags-container" class="space-y-2"><label class="label">Tags (e.g., Sales, Top Selling)</label><div id="edit-tags-list" class="flex flex-wrap gap-2"></div></div><div class="p-4 rounded-lg bg-black border border-border-color"><p class="font-semibold mb-2 text-gray-300">Discount Settings</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center"><div class="sm:col-span-1"><label class="label">Discount Factor (e.g., 0.7)</label><input type="number" id="edit-product-discount-factor" class="input mt-1" step="0.01" min="0" max="1"></div><div class="sm:col-span-2"><label class="label">Discount Expiry Date</label><input type="datetime-local" id="edit-product-discount-expires" class="input mt-1 flatpickr-input"></div></div><div class="flex justify-between items-center mt-2"><div class="flex items-center"><label class="toggle-switch"><input type="checkbox" id="edit-product-discount-active"><span class="toggle-slider"></span></label><label for="edit-product-discount-active" class="ml-2 text-sm">Enable Discount</label></div><div class="text-right"><p class="text-sm">Discount Price: <span id="calculated-discount-price" class="font-bold text-accent-color"></span></p></div></div></div></div><div class="p-4 bg-black/50 rounded-b-lg text-right border-t border-border-color"><button id="save-product-changes-btn" class="btn btn-primary">Save Changes</button></div></div>
     </div>
     <div id="loading-overlay" class="hidden fixed inset-0 bg-bg-main/80 backdrop-blur-sm flex items-center justify-center z-[100]"><div class="flex items-center"><div class="w-8 h-8 border-4 border-gray-600 border-t-accent-color rounded-full animate-spin"></div><p class="ml-4 text-lg font-semibold text-text-primary">Processing...</p></div></div>
-    <div id="toast-container" class="fixed bottom-5 right-5 space-y-2 z-[101]"></div>
 
     <script type="module">
         // --- Configuration ---
