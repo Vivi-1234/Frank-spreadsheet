@@ -1415,6 +1415,53 @@
                 return;
             }
         }
+
+        function handleInlineEdit(e) {
+            const cell = e.target.closest('.editable-cell');
+            if (!cell || cell.querySelector('input')) return;
+
+            const originalValue = cell.textContent.trim().replace('¥', '');
+            const field = cell.dataset.field;
+            const productId = cell.dataset.id;
+
+            cell.innerHTML = `<input type="text" class="input w-full" value="${originalValue}">`;
+            const input = cell.querySelector('input');
+            input.focus();
+            input.select();
+
+            const saveChanges = async () => {
+                const newValue = input.value;
+                
+                // Restore original content first to avoid seeing the input box
+                cell.innerHTML = field === 'price' ? `¥${originalValue}` : `<div class="truncate max-w-[15ch]">${originalValue || '—'}</div>`;
+                
+                if (newValue !== originalValue) {
+                    showLoading(true);
+                    const { error } = await db.from('products').update({ [field]: newValue }).eq('id', productId);
+                    showLoading(false);
+
+                    if (error) {
+                        showAlert(`Update failed: ${error.message}`, true);
+                        cell.classList.add('flash-error');
+                    } else {
+                        showAlert('Update successful!');
+                        cell.innerHTML = field === 'price' ? `¥${newValue}` : `<div class="truncate max-w-[15ch]">${newValue || '—'}</div>`;
+                        const product = productsCache.find(p => p.id == productId);
+                        if (product) product[field] = newValue;
+                        cell.classList.add('flash-success');
+                    }
+                }
+                setTimeout(() => cell.classList.remove('flash-success', 'flash-error'), 700);
+            };
+
+            input.addEventListener('blur', saveChanges);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') {
+                    cell.innerHTML = field === 'price' ? `¥${originalValue}` : `<div class="truncate max-w-[15ch]">${originalValue || '—'}</div>`;
+                }
+            });
+        }
         
         function updateBulkActionBar() {
             const checkboxes = document.querySelectorAll('.product-checkbox:checked');
@@ -1592,7 +1639,7 @@
             const dataToExport = productsCache.map(p => ({
                 id: p.id,
                 name: p.name,
-                brand: p.brands?.name || '',
+                brand_name: p.brands?.name || '',
                 category: p.category,
                 tags: p.tags,
                 price: p.price,
