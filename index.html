@@ -42,6 +42,7 @@
         .nav-link {
             position: relative;
             transition: color 0.3s ease;
+            padding-bottom: 6px; /* Space for the underline */
         }
         .nav-link:after {
             content: '';
@@ -53,8 +54,9 @@
             right: 0;
             background: #FFFFFF;
             transition: width 0.3s ease;
+            bottom: 0;
         }
-        .nav-link.active:after, .nav-link:hover:after {
+        .nav-link:hover:after, .nav-link-active:after {
             width: 100%;
             left: 0;
         }
@@ -82,18 +84,30 @@
         .product-card:hover img {
             transform: scale(1.05);
         }
-        .discount-badge {
+        .badge {
             position: absolute;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.7rem;
+            text-shadow: none;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .discount-badge {
             top: 0.75rem;
             right: 0.75rem;
             background-color: #FFFFFF;
             color: #0D0D0D;
-            padding: 0.25rem 0.6rem;
-            border-radius: 9999px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-shadow: none;
             border: 1px solid #000;
+        }
+        .tag-badge {
+            top: 0.75rem;
+            left: 0.75rem;
+            background-color: rgba(245, 158, 11, 0.7); /* Amber color with opacity */
+            color: #FFFFFF;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .btn {
             padding: 0.75rem 1.5rem;
@@ -351,13 +365,14 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // --- State ---
-        let currentCategoryFilter = 'all', currentTagFilter = 'all', currentSearchQuery = '';
+        let currentCategoryFilter = 'all', currentBrandFilter = 'all', currentSearchQuery = '';
         let cnyToUsdRate = 0.14, userCountryCode = null;
         let currentPage = 1;
         const pageSize = 48;
         let isLoadingMore = false;
         let allProductsLoaded = false;
         let scrollObserver = null;
+        let brandsCache = [];
 
         // --- Core Logic ---
         
@@ -470,7 +485,15 @@
                 let discountBadgeHTML = '';
                 if (showDiscount && p.discount_factor) {
                     const percentageOff = Math.round((1 - p.discount_factor) * 100);
-                    if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
+                    if (percentageOff > 0) discountBadgeHTML = `<div class="badge discount-badge">${percentageOff}% OFF</div>`;
+                }
+
+                let tagBadgeHTML = '';
+                if (p.tags) {
+                    const firstTag = p.tags.split(',')[0].trim();
+                    if(firstTag) {
+                        tagBadgeHTML = `<div class="badge tag-badge">${firstTag}</div>`;
+                    }
                 }
                 
                 const optimizedImageUrl = getOptimizedImageUrl(p.image_url, { width: 400, height: 400 });
@@ -485,6 +508,7 @@
                             ${priceHTML}
                         </div>
                         ${discountBadgeHTML}
+                        ${tagBadgeHTML}
                     </a>`;
             }).join('');
 
@@ -496,10 +520,10 @@
             url.searchParams.delete('tag');
             url.searchParams.delete('category');
             url.searchParams.delete('q');
-            url.searchParams.delete('page');
+            url.searchParams.delete('brand');
 
-            if (currentTagFilter && currentTagFilter !== 'all') {
-                url.searchParams.set('tag', currentTagFilter);
+            if (currentBrandFilter && currentBrandFilter !== 'all') {
+                url.searchParams.set('brand', currentBrandFilter);
             }
             if (currentCategoryFilter && currentCategoryFilter !== 'all') {
                 url.searchParams.set('category', currentCategoryFilter);
@@ -508,7 +532,7 @@
                 url.searchParams.set('q', currentSearchQuery);
             }
             
-            history.replaceState({tag: currentTagFilter, category: currentCategoryFilter, q: currentSearchQuery}, '', url);
+            history.replaceState({brand: currentBrandFilter, category: currentCategoryFilter, q: currentSearchQuery}, '', url);
         }
         
         async function fetchProductsPage(page) {
@@ -524,21 +548,19 @@
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
 
-            let query = db.from('products').select('*', { count: 'exact' }).eq('is_active', true);
+            let query = db.from('products').select('*, brands(name)').eq('is_active', true);
 
             if (currentCategoryFilter !== 'all') {
                 query = query.like('category', `%${currentCategoryFilter}%`);
             }
-            if (currentTagFilter !== 'all') {
-                query = query.like('tags', `%${currentTagFilter}%`);
+            if (currentBrandFilter !== 'all') {
+                query = query.eq('brand_id', currentBrandFilter);
             }
             if (currentSearchQuery) {
                 query = query.ilike('name', `%${currentSearchQuery}%`);
             }
 
-            query = query.order('display_order').range(from, to);
-
-            const { data, error, count } = await query;
+            const { data, error, count } = await query.order('display_order').range(from, to);
             
             isLoadingMore = false;
             document.getElementById('loading-indicator').classList.remove('visible');
@@ -592,17 +614,17 @@
                     if (rateResponse.ok) { cnyToUsdRate = (await rateResponse.json()).rates.USD; }
                 } catch (rateError) { console.error('Error fetching exchange rate:', rateError); }
 
-                const [settingsRes, navRes, tagsRes, socialRes, flashSaleSettingsRes] = await Promise.all([
+                const [settingsRes, navRes, brandsRes, socialRes, flashSaleSettingsRes] = await Promise.all([
                     db.from('settings').select('*').limit(1).single(),
                     db.from('navigation').select('*').order('display_order'),
-                    db.from('product_tags').select('*').order('display_order'),
+                    db.from('brands').select('*').order('name'),
                     db.from('social_links').select('*').order('display_order'),
                     db.from('flash_sale_settings').select('*').single()
                 ]);
 
                 const settings = settingsRes.data;
                 const navItems = navRes.data || [];
-                const tags = tagsRes.data || [];
+                brandsCache = brandsRes.data || [];
                 const socialLinks = socialRes.data || [];
                 const flashSaleSettings = flashSaleSettingsRes.data;
 
@@ -629,12 +651,33 @@
                 const mainNavContainer = document.getElementById('main-nav');
                 const mobileNavContent = document.getElementById('mobile-nav-content');
                 if (mainNavContainer && mobileNavContent) {
-                    let desktopNavHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link text-sm font-medium">How-to-buy</a>`;
-                    let mobileNavHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link text-lg md:text-sm font-medium">How-to-buy</a>`;
-                    desktopNavHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-sm font-medium">${tag.name}</a>`).join('');
-                    mobileNavHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-lg md:text-sm font-medium">${tag.name}</a>`).join('');
-                    mainNavContainer.innerHTML = desktopNavHTML;
-                    mobileNavContent.innerHTML = mobileNavHTML;
+                    const brandDropdownItemsHTML = brandsCache.map(brand => `<a href="/?brand=${brand.id}" data-brandid="${brand.id}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">${brand.name}</a>`).join('');
+                    const allBrandsLinkHTML = `<a href="/" data-brandid="all" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">All Brands</a>`;
+                    const desktopDropdownHTML = `
+                        <div class="relative nav-link" id="brands-dropdown">
+                            <button id="brands-btn" class="text-sm font-medium flex items-center">
+                                Brands <i data-lucide="chevron-down" class="h-4 w-4 ml-1"></i>
+                            </button>
+                            <div id="brands-menu" class="hidden absolute right-0 mt-2 w-48 bg-[#1a1a1a] rounded-md shadow-lg z-50 ring-1 ring-black ring-opacity-5 py-1">
+                                ${allBrandsLinkHTML}
+                                ${brandDropdownItemsHTML}
+                            </div>
+                        </div>`;
+                    mainNavContainer.innerHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a>${desktopDropdownHTML}<a href="/how-to-buy" class="nav-link text-sm font-medium">How-to-buy</a>`;
+                    
+                    const mobileBrandDropdownItemsHTML = brandsCache.map(brand => `<a href="/?brand=${brand.id}" data-brandid="${brand.id}" class="block py-2 text-lg text-gray-300 hover:text-white">${brand.name}</a>`).join('');
+                    const mobileAllBrandsLinkHTML = `<a href="/" data-brandid="all" class="block py-2 text-lg text-gray-300 hover:text-white">All Brands</a>`;
+                    const mobileDropdownHTML = `
+                        <div class="relative w-full">
+                            <button id="mobile-brands-btn" class="nav-link text-lg font-medium flex justify-between items-center w-full">
+                                Brands <i data-lucide="chevron-down" class="h-5 w-5"></i>
+                            </button>
+                            <div id="mobile-brands-menu" class="hidden mt-2 pl-4 space-y-2">
+                                ${mobileAllBrandsLinkHTML}
+                                ${mobileBrandDropdownItemsHTML}
+                            </div>
+                        </div>`;
+                    mobileNavContent.innerHTML = `<a href="/" class="nav-link text-lg font-medium">Home</a>${mobileDropdownHTML}<a href="/how-to-buy" class="nav-link text-lg font-medium">How-to-buy</a>`;
                 }
 
                 const socialSidebar = document.getElementById('social-sidebar');
@@ -674,7 +717,7 @@
 
         function initializeFilters() {
             const urlParams = new URLSearchParams(window.location.search);
-            currentTagFilter = urlParams.get('tag') || 'all';
+            currentBrandFilter = urlParams.get('brand') || 'all';
             currentCategoryFilter = urlParams.get('category') || 'all';
             currentSearchQuery = urlParams.get('q') || '';
             currentPage = 1;
@@ -690,16 +733,16 @@
             document.querySelectorAll('#category-filter-container .filter-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.category === currentCategoryFilter);
             });
-            document.querySelectorAll('#main-nav .nav-link, #mobile-nav-content .nav-link').forEach(link => {
-                const url = new URL(link.href, window.location.origin);
-                const linkTag = url.searchParams.get('tag');
-                
-                if (link.getAttribute('href') === '/') {
-                    link.classList.toggle('active', currentTagFilter === 'all' && currentCategoryFilter === 'all' && !currentSearchQuery);
-                } else if (linkTag) {
-                    link.classList.toggle('active', linkTag === currentTagFilter);
+            document.querySelectorAll('#main-nav .nav-link').forEach(link => {
+                const isBrandsDropdown = link.id === 'brands-dropdown';
+                const isHome = link.getAttribute('href') === '/';
+
+                if (isBrandsDropdown) {
+                    link.classList.toggle('nav-link-active', currentBrandFilter !== 'all');
+                } else if (isHome) {
+                    link.classList.toggle('nav-link-active', currentBrandFilter === 'all' && currentCategoryFilter === 'all' && !currentSearchQuery);
                 } else {
-                    link.classList.remove('active');
+                    link.classList.remove('nav-link-active');
                 }
             });
         }
@@ -708,6 +751,9 @@
             document.body.addEventListener('click', e => {
                 const card = e.target.closest('.product-card');
                 if (card?.dataset.productName) logEvent('product_click', card.dataset.productName);
+                if (!e.target.closest('#brands-dropdown')) {
+                     document.getElementById('brands-menu')?.classList.add('hidden');
+                }
             });
             
             const categoryContainer = document.getElementById('category-filter-container');
@@ -717,7 +763,6 @@
                     currentPage = 1;
                     allProductsLoaded = false;
                     currentCategoryFilter = button.dataset.category;
-                    // ** FIX: Do NOT reset other filters, only search **
                     currentSearchQuery = ''; 
                     document.getElementById('search-input').value = '';
                     
@@ -727,11 +772,11 @@
                 }
             });
             
-            const handleTagClick = (tag) => {
+            const handleBrandClick = (brandId) => {
                 currentPage = 1;
                 allProductsLoaded = false;
-                currentTagFilter = tag;
-                // ** FIX: Do NOT reset other filters, only search **
+                currentBrandFilter = brandId;
+                currentCategoryFilter = 'all';
                 currentSearchQuery = '';
                 document.getElementById('search-input').value = '';
 
@@ -740,45 +785,33 @@
                 updateURL();
             };
 
-            const mainNav = document.getElementById('main-nav');
-            mainNav?.addEventListener('click', e => {
-                const link = e.target.closest('a.nav-link');
-                if (!link) return;
-                
-                const url = new URL(link.href, window.location.origin);
-                const tag = url.searchParams.get('tag');
-
-                if (link.getAttribute('href').startsWith('/?tag=')) {
-                    e.preventDefault();
-                    // ** FIX: When a main tag is clicked, it should be exclusive **
-                    currentCategoryFilter = 'all'; 
-                    handleTagClick(tag);
-                } else if (link.getAttribute('href') === '/') {
-                    e.preventDefault();
-                    currentCategoryFilter = 'all';
-                    handleTagClick('all');
-                }
-            });
+            const setupMenuActions = (menuId) => {
+                 document.getElementById(menuId)?.addEventListener('click', e => {
+                    const link = e.target.closest('a');
+                    if (link) {
+                        e.preventDefault();
+                        const brandId = link.dataset.brandid;
+                        handleBrandClick(brandId);
+                        document.getElementById('brands-menu')?.classList.add('hidden');
+                        document.getElementById('mobile-brands-menu')?.classList.add('hidden');
+                        toggleMobileMenu(false);
+                    }
+                });
+            }
             
-            const mobileNav = document.getElementById('mobile-nav-content');
-            mobileNav?.addEventListener('click', e => {
-                const link = e.target.closest('a.nav-link');
-                if (!link) return;
-                const url = new URL(link.href, window.location.origin);
-                const tag = url.searchParams.get('tag');
-
-                if (link.getAttribute('href').startsWith('/?tag=')) {
-                    e.preventDefault();
-                    currentCategoryFilter = 'all';
-                    handleTagClick(tag);
-                    toggleMobileMenu(false);
-                } else if (link.getAttribute('href') === '/') {
-                    e.preventDefault();
-                    currentCategoryFilter = 'all';
-                    handleTagClick('all');
-                    toggleMobileMenu(false);
-                }
+            document.getElementById('brands-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('brands-menu').classList.toggle('hidden');
             });
+
+            document.getElementById('mobile-brands-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('mobile-brands-menu').classList.toggle('hidden');
+                lucide.createIcons();
+            });
+
+            setupMenuActions('brands-menu');
+            setupMenuActions('mobile-brands-menu');
 
             // --- Search Listeners ---
             const openSearchBtn = document.getElementById('open-search-btn');
@@ -809,9 +842,8 @@
                 currentPage = 1;
                 allProductsLoaded = false;
                 currentSearchQuery = query;
-                // Reset other filters
                 currentCategoryFilter = 'all'; 
-                currentTagFilter = 'all';
+                currentBrandFilter = 'all';
                 fetchProductsPage(1);
                 updateURL();
                 updateActiveUI();
