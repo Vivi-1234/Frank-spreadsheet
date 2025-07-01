@@ -220,7 +220,7 @@
             cursor: not-allowed;
         }
         .pagination-btn.active {
-             background: #FFFFFF;
+            background: #FFFFFF;
             color: #0D0D0D;
             border-color: #FFFFFF;
             font-weight: 600;
@@ -344,9 +344,40 @@
                 return urlObj.toString();
             } catch(e) { return url; }
         }
+
+        // ***** NEW: Image Optimization Function *****
+        function getOptimizedImageUrl(originalUrl, options = { width: 400, height: 400, quality: 75 }) {
+            const placeholder = `https://placehold.co/${options.width}x${options.height}/1a1a1a/9CA3AF?text=NO+IMAGE`;
+            if (!originalUrl) {
+                return placeholder;
+            }
+            // Only transform Supabase storage URLs
+            if (!originalUrl.includes(SUPABASE_URL)) {
+                return originalUrl;
+            }
+            try {
+                // Construct the transformation URL
+                const url = new URL(originalUrl);
+                const pathSegments = url.pathname.split('/');
+                // Find the bucket name, which is typically after 'object/public/'
+                const bucketIndex = pathSegments.findIndex(segment => segment === 'public') + 1;
+                if (bucketIndex >= pathSegments.length) return originalUrl; // Invalid path
+                
+                const bucketName = pathSegments[bucketIndex];
+                const imagePath = pathSegments.slice(bucketIndex + 1).join('/');
+
+                // Use Supabase's render path for transformations
+                return `${SUPABASE_URL}/storage/v1/render/image/public/${bucketName}/${imagePath}?width=${options.width}&height=${options.height}&quality=${options.quality}&format=webp`;
+
+            } catch (e) {
+                console.error("Failed to parse or transform image URL:", e);
+                return placeholder; // Return placeholder on error
+            }
+        }
         
-        function renderProducts(productArray) {
-            const productContainer = document.getElementById('product-list-container');
+        // ***** UPDATED: renderProducts now takes a containerId *****
+        function renderProducts(productArray, containerId) {
+            const productContainer = document.getElementById(containerId);
             if (!productContainer) return;
 
             if (!productArray || productArray.length === 0) {
@@ -372,10 +403,13 @@
                     if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
                 }
                 
+                // ***** UPDATED: Use the new optimization function *****
+                const optimizedImageUrl = getOptimizedImageUrl(p.image_url, { width: 400, height: 400 });
+
                 return `
                     <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
                         <div class="img-wrapper">
-                            <img src="${p.image_url || 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'}" alt="${p.name}" loading="lazy">
+                            <img src="${optimizedImageUrl}" alt="${p.name}" loading="lazy">
                         </div>
                         <div class="p-4">
                             <h3 class="product-title font-semibold text-gray-100 group-hover:text-white transition-colors">${p.name}</h3>
@@ -422,8 +456,8 @@
             }
 
             if (startPage > 1) {
-                 paginationHTML += `<button class="pagination-btn" data-page="1">1</button>`;
-                 if (startPage > 2) paginationHTML += `<span class="px-2">...</span>`;
+                paginationHTML += `<button class="pagination-btn" data-page="1">1</button>`;
+                if (startPage > 2) paginationHTML += `<span class="px-2">...</span>`;
             }
 
             for (let i = startPage; i <= endPage; i++) {
@@ -484,7 +518,8 @@
                 return;
             }
 
-            renderProducts(data);
+            // ***** UPDATED: Pass the correct container ID *****
+            renderProducts(data, 'product-list-container');
             renderPagination(count, currentPage);
             
             if (options.shouldScroll) {
@@ -523,7 +558,8 @@
                     if (endTime > new Date()) {
                         document.getElementById('flash-sale-section').classList.remove('hidden');
                         setupCountdown(endTime);
-                        renderProducts('flash-sale-product-list', flashSaleProducts);
+                        // ***** UPDATED: Pass the correct container ID for flash sale *****
+                        renderProducts(flashSaleProducts, 'flash-sale-product-list');
                     }
                 }
 
@@ -602,7 +638,7 @@
                 } else if (linkTag) {
                     link.classList.toggle('active', linkTag === currentTagFilter);
                 } else {
-                     link.classList.remove('active');
+                    link.classList.remove('active');
                 }
             });
         }
@@ -653,10 +689,10 @@
             
             const mobileNav = document.getElementById('mobile-nav-content');
             mobileNav?.addEventListener('click', e => {
-                 const link = e.target.closest('a.nav-link');
-                 if (!link) return;
-                 const url = new URL(link.href, window.location.origin);
-                 const tag = url.searchParams.get('tag');
+                const link = e.target.closest('a.nav-link');
+                if (!link) return;
+                const url = new URL(link.href, window.location.origin);
+                const tag = url.searchParams.get('tag');
 
                 if (link.getAttribute('href').startsWith('/?tag=')) {
                     e.preventDefault();
