@@ -358,7 +358,7 @@
             const categoryDropdownItems = navCache.filter(n => n.link_text.toLowerCase() !== 'home').map(cat => `<label class="dropdown-item"><input type="checkbox" value="${cat.link_text}" ${selectedCategories.includes(cat.link_text) ? 'checked' : ''}><span>${cat.link_text}</span></label>`).join('');
             const tagsDropdownItems = tagsCache.map(tag => `<label class="dropdown-item"><input type="checkbox" value="${tag.name}" ${selectedTags.includes(tag.name) ? 'checked' : ''}><span>${tag.name}</span></label>`).join('');
 
-            const brandDropdown = `<select class="input brand-select" data-id="${p.id}">${brandsCache.map(b => `<option value="${b.id}" ${p.brand_id === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}<option value="">None</option></select>`;
+            const brandDropdown = `<select class="input brand-select" data-id="${p.id}"><option value="">None</option>${brandsCache.map(b => `<option value="${b.id}" ${p.brand_id === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}</select>`;
             const categoryDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="category" data-id="${p.id}">${selectedCategories.join(', ') || 'Select Category'}</div><div class="dropdown-menu" data-type="category" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${categoryDropdownItems}</div></div></div>`;
             const tagsDropdown = `<div class="custom-dropdown"><div class="dropdown-trigger" data-type="tags" data-id="${p.id}">${selectedTags.join(', ') || 'Select Tags'}</div><div class="dropdown-menu" data-type="tags" data-id="${p.id}"><div class="p-2 space-y-1 max-h-48 overflow-y-auto">${tagsDropdownItems}</div></div></div>`;
 
