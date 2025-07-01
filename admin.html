@@ -122,6 +122,7 @@
         let currentEditFile = null, currentEditImageUrl = '';
         let currentHeroBgFile = null, currentHeroBgUrl = '';
         let howToBuySettingsCache = null;
+        let productsCurrentPage = 1, productsPageSize = 50, totalProducts = 0;
 
         // --- DOM Elements ---
         const authScreen = document.getElementById('auth-screen');
@@ -134,7 +135,7 @@
         // --- HTML Templates ---
         const templates = {
             dashboard: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Dashboard</h2><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input id="date-range-picker" class="input" placeholder="Select date range"></div><button id="export-excel-btn" class="btn btn-secondary text-sm"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export Data</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"><div class="panel p-5"><p class="text-sm text-text-secondary">Total Site Visits</p><p id="total-visits" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Product Clicks</p><p id="total-product-clicks" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Products</p><p id="total-products" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Active Discounts</p><p id="active-discounts" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Top Product</p><p id="top-product" class="text-lg font-bold truncate text-text-primary">N/A</p></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Site Visit Trend</h3><div class="h-64"><canvas id="visits-chart"></canvas></div></div><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Product Click Trend</h3><div class="h-64"><canvas id="product-clicks-chart"></canvas></div></div></div>`,
-            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Brand</th><th class="p-4">Category</th><th class="p-4">Tags</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list"></tbody></table></div></div></div>`,
+            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><h3 class="font-semibold text-lg p-6">Existing Products</h3><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4">Product</th><th class="p-4">Brand</th><th class="p-4">Category</th><th class="p-4">Tags</th><th class="p-4">Price</th><th class="p-4">URL</th><th class="p-4">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list"></tbody></table></div><div id="pagination-controls" class="p-4 flex justify-between items-center border-t border-border-color"></div></div></div>`,
             brands: `<h2 class="text-2xl font-bold text-text-primary mb-6">Brand Management</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage product brands. Drag to reorder.</p><div class="flex items-center gap-2 mb-4"><input type="text" id="new-brand-input" class="input flex-grow" placeholder="Enter new brand name"><button id="add-brand-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="brand-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-brands-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             tags: `<h2 class="text-2xl font-bold text-text-primary mb-6">Tag Management</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage special tags like "Sales", "Top Selling", etc. Drag to reorder.</p><div class="flex items-center gap-2 mb-4"><input type="text" id="new-tag-input" class="input flex-grow" placeholder="Enter new tag name (e.g., Sales)"><button id="add-tag-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="tag-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-tags-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             navigation: `<h2 class="text-2xl font-bold text-text-primary mb-6">Navigation (Categories)</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage the category filter buttons on the homepage. Drag to reorder.</p><div id="navigation-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-nav-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Nav Item</button></div><div class="text-right mt-4"><button id="save-nav-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
@@ -310,17 +311,26 @@
             document.getElementById('add-product-form-row-btn').addEventListener('click', addProductFormRow);
             document.getElementById('submit-all-new-products-btn').addEventListener('click', submitAllNewProducts);
             addProductFormRow();
-            await loadProducts();
+            await loadProducts(1);
         }
         
-        async function loadProducts() {
+        async function loadProducts(page = 1) {
+            productsCurrentPage = page;
             const productListEl = document.getElementById('product-list');
             if (!productListEl) return;
             
             showLoading(true);
             productListEl.innerHTML = '<tr><td colspan="12" class="text-center p-8">Loading products...</td></tr>';
             
-            const { data, error } = await db.from('products').select(`*, brands (*)`).eq('is_active', true).order('display_order');
+            const from = (page - 1) * productsPageSize;
+            const to = from + productsPageSize - 1;
+
+            const { data, error, count } = await db.from('products')
+                .select(`*, brands (*)`, { count: 'exact' })
+                .eq('is_active', true)
+                .order('display_order')
+                .range(from, to);
+
             showLoading(false);
 
             if (error) {
@@ -329,7 +339,9 @@
             }
 
             productsCache = data || [];
+            totalProducts = count || 0;
             renderProductList(productsCache);
+            renderPagination();
         }
 
         function renderProductList(products) {
@@ -349,6 +361,26 @@
             if (sortableInstance) sortableInstance.destroy();
             sortableInstance = new Sortable(productListEl, { animation: 150, ghostClass: 'sortable-ghost', handle: '.cursor-move', onEnd: saveProductOrder });
             setupProductEventListeners();
+        }
+
+        function renderPagination() {
+            const container = document.getElementById('pagination-controls');
+            if (!container) return;
+
+            const totalPages = Math.ceil(totalProducts / productsPageSize);
+            
+            container.innerHTML = `
+                <span class="text-sm text-gray-400">
+                    Page ${productsCurrentPage} of ${totalPages}
+                </span>
+                <div class="flex items-center gap-2">
+                    <button id="prev-page-btn" class="btn btn-secondary btn-xs" ${productsCurrentPage === 1 ? 'disabled' : ''}>Previous</button>
+                    <button id="next-page-btn" class="btn btn-secondary btn-xs" ${productsCurrentPage >= totalPages ? 'disabled' : ''}>Next</button>
+                </div>
+            `;
+
+            document.getElementById('prev-page-btn')?.addEventListener('click', () => loadProducts(productsCurrentPage - 1));
+            document.getElementById('next-page-btn')?.addEventListener('click', () => loadProducts(productsCurrentPage + 1));
         }
 
         function generateProductRowHtml(p) {
@@ -760,10 +792,10 @@
             try {
                 if (idsToDelete.length > 0) await db.from('brands').delete().in('id', idsToDelete);
                 if (recordsToUpdate.length > 0) await db.from('brands').upsert(recordsToUpdate);
-                if (recordsToInsert.length > 0) await db.from('brands').insert(recordsToInsert.map(({id, ...rest}) => rest));
+                if (recordsToInsert.length > 0) await db.from('brands').insert(recordsToInsert.map(({ id, ...rest }) => rest));
                 
                 showAlert('Brands updated!');
-                const { data } = await db.from('brands').select('*').order('name');
+                const { data } = await db.from('brands').select('*').order('display_order');
                 brandsCache = data || [];
                 renderBrandsFromCache();
 
@@ -844,7 +876,7 @@
                 document.getElementById('add-product-forms-container').innerHTML = '';
                 newProductFiles.clear();
                 addProductFormRow();
-                await loadProducts();
+                await loadProducts(1);
             }
         }
         
@@ -900,14 +932,14 @@
             const reorderedIds = Array.from(evt.to.children).map(item => parseInt(item.dataset.id));
             
             const updates = reorderedIds.map((id, index) => 
-                db.from('products').update({ display_order: index }).eq('id', id)
+                db.from('products').update({ display_order: index + ((productsCurrentPage - 1) * productsPageSize) }).eq('id', id)
             );
             try {
                 await Promise.all(updates);
                 showAlert('Order saved!');
             } catch (error) {
                 showAlert('Reorder failed: ' + error.message, true);
-                await loadProducts();
+                await loadProducts(productsCurrentPage);
             } finally {
                 showLoading(false);
             }
@@ -919,15 +951,135 @@
             showLoading(false);
             if (error) {
                 showAlert('Update failed: ' + error.message, true);
-                await loadProducts();
+                await loadProducts(productsCurrentPage);
             } else { 
                 const product = productsCache.find(p => p.id == productId); 
                 if(product) product[field] = value; 
             }
         }
 
-        async function saveFlashSaleData() { /* ... */ }
-        async function saveHowToBuyData() { /* ... */ }
+        async function saveFlashSaleData() {
+            showLoading(true);
+            const endTimeValue = document.getElementById('flash-sale-end-time').value;
+            const settingsUpdate = { id: 1, is_active: document.getElementById('flash-sale-active-toggle').checked, end_time: endTimeValue ? new Date(endTimeValue).toISOString() : null, updated_at: new Date().toISOString() };
+            const selectedProductIds = Array.from(document.getElementById('flash-sale-products-list').children).map((el, index) => ({ product_id: parseInt(el.dataset.id), display_order: index }));
+            try {
+                await db.from('flash_sale_settings').upsert(settingsUpdate);
+                await db.from('flash_sale_products').delete().neq('id', 0);
+                if(selectedProductIds.length > 0) {
+                    const { error } = await db.from('flash_sale_products').insert(selectedProductIds);
+                    if (error) throw error;
+                }
+                showAlert('Flash sale settings saved!');
+            } catch (error) { showAlert('Save failed: ' + error.message, true);
+            } finally { showLoading(false); }
+        }
+
+        async function saveHowToBuyData() {
+            showLoading(true);
+            const button = document.getElementById('save-how-to-buy-btn');
+            button.disabled = true;
+
+            try {
+                if (howToBuySettingsCache && howToBuySettingsCache.id) {
+                    const settingsUpdate = {
+                        video_url: document.getElementById('how-to-buy-video-url').value.trim() || null,
+                        signup_url: document.getElementById('how-to-buy-signup-url').value.trim() || null,
+                        updated_at: new Date().toISOString()
+                    };
+                    const { error: settingsError } = await db.from('how_to_buy_settings').update(settingsUpdate).eq('id', howToBuySettingsCache.id);
+                    if (settingsError) throw settingsError;
+                }
+                
+                let displayOrderCounter = 0;
+                const allPayloads = [];
+                const mainStepCards = document.querySelectorAll('.main-step-card');
+
+                for (const mainCard of mainStepCards) {
+                    const mainStepTitle = mainCard.querySelector('.main-step-title').value.trim();
+                    if (!mainStepTitle) continue;
+
+                    const mainStepId = mainCard.dataset.id;
+                    const mainStepPayload = {
+                        id: mainStepId.startsWith('new_') ? undefined : parseInt(mainStepId),
+                        title: mainStepTitle,
+                        section_title: null,
+                        description: null,
+                        image_url: null,
+                        display_order: displayOrderCounter++
+                    };
+                    allPayloads.push(mainStepPayload);
+
+                    const subStepRows = mainCard.querySelectorAll('.sub-step-row');
+                    for (const subRow of subStepRows) {
+                        const subStepId = subRow.dataset.id;
+                        const imageFile = newHowToBuyStepFiles.get(subStepId);
+                        let imageUrl = null;
+
+                        if (imageFile) {
+                            imageUrl = await uploadImage(imageFile, 'how-to-buy-steps');
+                        } else {
+                            const placeholder = subRow.querySelector('.step-image-placeholder');
+                            if (placeholder.classList.contains('hidden')) {
+                                const previewSrc = subRow.querySelector('.step-image-preview').src;
+                                if (previewSrc && !previewSrc.endsWith('/admin.html') && !previewSrc.startsWith('blob:')) {
+                                    imageUrl = previewSrc;
+                                }
+                            }
+                        }
+
+                        const subStepPayload = {
+                            id: subStepId.startsWith('new_') ? undefined : parseInt(subStepId),
+                            title: subRow.querySelector('.sub-step-title').value.trim(),
+                            description: subRow.querySelector('.sub-step-description').value.trim(),
+                            image_url: imageUrl,
+                            section_title: mainStepTitle,
+                            display_order: displayOrderCounter++
+                        };
+                        allPayloads.push(subStepPayload);
+                    }
+                }
+                
+                const { data: existingSteps } = await db.from('how_to_buy_steps').select('id');
+                const existingIds = (existingSteps || []).map(s => s.id);
+                const currentIds = allPayloads.filter(p => p.id).map(p => p.id);
+                const idsToDelete = existingIds.filter(id => !currentIds.includes(id));
+
+                if (idsToDelete.length > 0) {
+                    await db.from('how_to_buy_steps').delete().in('id', idsToDelete);
+                }
+                
+                const recordsToUpdate = allPayloads.filter(p => p.id);
+                const recordsToInsert = allPayloads.filter(p => !p.id);
+
+                if (recordsToUpdate.length > 0) {
+                    const updatePromises = recordsToUpdate.map(record => {
+                        const { id, ...updateData } = record;
+                        return db.from('how_to_buy_steps').update(updateData).eq('id', id);
+                    });
+                    const updateResults = await Promise.all(updatePromises);
+                    const firstError = updateResults.find(res => res.error);
+                    if (firstError) throw firstError.error;
+                }
+
+                if (recordsToInsert.length > 0) {
+                    const cleanRecordsToInsert = recordsToInsert.map(({ id, ...rest }) => rest);
+                    const { error: insertError } = await db.from('how_to_buy_steps').insert(cleanRecordsToInsert);
+                    if (insertError) throw insertError;
+                }
+
+                showAlert('Successfully saved "How-to-buy" page!');
+                newHowToBuyStepFiles.clear();
+                await loadHowToBuyData();
+
+            } catch (error) {
+                showAlert('Save failed: ' + error.message, true);
+                console.error("Save How-to-buy error:", error);
+            } finally {
+                showLoading(false);
+                button.disabled = false;
+            }
+        }
 
         // --- Utility Functions ---
         async function uploadImage(file, bucket = 'product-images') {
@@ -1209,7 +1361,7 @@
                 try {
                     const updatePromises = selectedIds.map(id => db.from('products').update({ discount_is_active: turnOn }).eq('id', id));
                     await Promise.all(updatePromises);
-                    await loadProducts();
+                    await loadProducts(productsCurrentPage);
                 } catch (error) { showAlert('Bulk update failed: ' + error.message, true);
                 } finally { showLoading(false); }
             }
