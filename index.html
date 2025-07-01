@@ -225,6 +225,25 @@
             border-color: #FFFFFF;
             font-weight: 600;
         }
+        /* Search Bar Styles */
+        #search-container {
+            position: relative;
+        }
+        #search-input {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+            color: #FFFFFF;
+            padding-left: 2.5rem;
+            padding-right: 2.5rem;
+            width: 250px;
+            transition: all 0.3s ease-in-out;
+        }
+        #search-input:focus {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            outline: none;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -235,7 +254,22 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <a href="/" class="text-base sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
-                <nav id="main-nav" class="hidden md:flex items-center space-x-4 md:space-x-8"></nav>
+                <div class="flex items-center gap-4 md:gap-8">
+                    <nav id="main-nav" class="hidden md:flex items-center space-x-4 md:space-x-8"></nav>
+                    <!-- Search Component -->
+                    <div id="search-component" class="flex items-center">
+                        <div id="search-container" class="relative hidden">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"></i>
+                            <input type="text" id="search-input" placeholder="Search products..." class="h-10">
+                            <button id="close-search-btn" class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white">
+                                <i data-lucide="x" class="h-5 w-5"></i>
+                            </button>
+                        </div>
+                        <button id="open-search-btn" class="p-2 text-gray-300 hover:text-white">
+                            <i data-lucide="search" class="h-6 w-6"></i>
+                        </button>
+                    </div>
+                </div>
                 <div class="md:hidden">
                     <button id="mobile-menu-btn" class="p-2">
                         <i data-lucide="menu" class="h-6 w-6"></i>
@@ -313,13 +347,21 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // --- State ---
-        let currentCategoryFilter = 'all', currentTagFilter = 'all';
+        let currentCategoryFilter = 'all', currentTagFilter = 'all', currentSearchQuery = '';
         let cnyToUsdRate = 0.14, userCountryCode = null;
         let currentPage = 1;
         const pageSize = 48;
 
         // --- Core Logic ---
         
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
         async function logEvent(eventType, eventValue = null) {
             const urlParams = new URLSearchParams(window.location.search);
             const refId = urlParams.get('ref');
@@ -345,37 +387,31 @@
             } catch(e) { return url; }
         }
 
-        // ***** NEW: Image Optimization Function *****
         function getOptimizedImageUrl(originalUrl, options = { width: 400, height: 400, quality: 75 }) {
             const placeholder = `https://placehold.co/${options.width}x${options.height}/1a1a1a/9CA3AF?text=NO+IMAGE`;
             if (!originalUrl) {
                 return placeholder;
             }
-            // Only transform Supabase storage URLs
             if (!originalUrl.includes(SUPABASE_URL)) {
                 return originalUrl;
             }
             try {
-                // Construct the transformation URL
                 const url = new URL(originalUrl);
                 const pathSegments = url.pathname.split('/');
-                // Find the bucket name, which is typically after 'object/public/'
                 const bucketIndex = pathSegments.findIndex(segment => segment === 'public') + 1;
-                if (bucketIndex >= pathSegments.length) return originalUrl; // Invalid path
+                if (bucketIndex >= pathSegments.length) return originalUrl;
                 
                 const bucketName = pathSegments[bucketIndex];
                 const imagePath = pathSegments.slice(bucketIndex + 1).join('/');
 
-                // Use Supabase's render path for transformations
                 return `${SUPABASE_URL}/storage/v1/render/image/public/${bucketName}/${imagePath}?width=${options.width}&height=${options.height}&quality=${options.quality}&format=webp`;
 
             } catch (e) {
                 console.error("Failed to parse or transform image URL:", e);
-                return placeholder; // Return placeholder on error
+                return placeholder;
             }
         }
         
-        // ***** UPDATED: renderProducts now takes a containerId *****
         function renderProducts(productArray, containerId) {
             const productContainer = document.getElementById(containerId);
             if (!productContainer) return;
@@ -403,7 +439,6 @@
                     if (percentageOff > 0) discountBadgeHTML = `<div class="discount-badge">${percentageOff}% OFF</div>`;
                 }
                 
-                // ***** UPDATED: Use the new optimization function *****
                 const optimizedImageUrl = getOptimizedImageUrl(p.image_url, { width: 400, height: 400 });
 
                 return `
@@ -481,13 +516,17 @@
             } else {
                 url.searchParams.delete('tag');
             }
-
+            if (currentSearchQuery) {
+                url.searchParams.set('q', currentSearchQuery);
+            } else {
+                url.searchParams.delete('q');
+            }
             if (currentPage > 1) {
                 url.searchParams.set('page', currentPage);
             } else {
                 url.searchParams.delete('page');
             }
-            history.pushState({tag: currentTagFilter, category: currentCategoryFilter, page: currentPage}, '', url);
+            history.pushState({tag: currentTagFilter, category: currentCategoryFilter, page: currentPage, q: currentSearchQuery}, '', url);
         }
         
         async function fetchProductsPage(page, options = { shouldScroll: false }) {
@@ -507,6 +546,9 @@
             if (currentTagFilter !== 'all') {
                 query = query.like('tags', `%${currentTagFilter}%`);
             }
+            if (currentSearchQuery) {
+                query = query.ilike('name', `%${currentSearchQuery}%`);
+            }
 
             query = query.order('display_order').range(from, to);
 
@@ -518,7 +560,6 @@
                 return;
             }
 
-            // ***** UPDATED: Pass the correct container ID *****
             renderProducts(data, 'product-list-container');
             renderPagination(count, currentPage);
             
@@ -558,7 +599,6 @@
                     if (endTime > new Date()) {
                         document.getElementById('flash-sale-section').classList.remove('hidden');
                         setupCountdown(endTime);
-                        // ***** UPDATED: Pass the correct container ID for flash sale *****
                         renderProducts(flashSaleProducts, 'flash-sale-product-list');
                     }
                 }
@@ -621,8 +661,15 @@
         function initializeFilters() {
             const urlParams = new URLSearchParams(window.location.search);
             currentTagFilter = urlParams.get('tag') || 'all';
+            currentSearchQuery = urlParams.get('q') || '';
             currentPage = parseInt(urlParams.get('page') || '1');
-            currentCategoryFilter = 'all'; // Always start with all categories for a given tag filter
+            currentCategoryFilter = 'all'; 
+
+            if (currentSearchQuery) {
+                document.getElementById('search-input').value = currentSearchQuery;
+                document.getElementById('search-container').classList.remove('hidden');
+                document.getElementById('open-search-btn').classList.add('hidden');
+            }
         }
 
         function updateActiveUI() {
@@ -634,7 +681,7 @@
                 const linkTag = url.searchParams.get('tag');
                 
                 if (link.getAttribute('href') === '/') {
-                    link.classList.toggle('active', currentTagFilter === 'all' && currentCategoryFilter === 'all');
+                    link.classList.toggle('active', currentTagFilter === 'all' && currentCategoryFilter === 'all' && !currentSearchQuery);
                 } else if (linkTag) {
                     link.classList.toggle('active', linkTag === currentTagFilter);
                 } else {
@@ -654,16 +701,19 @@
                 const button = e.target.closest('.filter-btn');
                 if (button) {
                     currentCategoryFilter = button.dataset.category;
-                    // ** FIX **: Do NOT reset the tag filter.
-                    // The fetch will now combine the current tag and the new category.
+                    currentSearchQuery = ''; // Clear search when category changes
+                    document.getElementById('search-input').value = '';
                     fetchProductsPage(1, { shouldScroll: true }); 
                     updateActiveUI();
+                    updateURL();
                 }
             });
             
             const handleTagClick = (tag) => {
                 currentTagFilter = tag;
-                currentCategoryFilter = 'all'; // Clicking a nav tag RESETS the category filter.
+                currentCategoryFilter = 'all';
+                currentSearchQuery = '';
+                document.getElementById('search-input').value = '';
                 fetchProductsPage(1, { shouldScroll: true }); 
                 updateActiveUI();
             };
@@ -713,6 +763,43 @@
                     updateURL();
                 }
             });
+
+            // --- Search Listeners ---
+            const openSearchBtn = document.getElementById('open-search-btn');
+            const closeSearchBtn = document.getElementById('close-search-btn');
+            const searchContainer = document.getElementById('search-container');
+            const searchInput = document.getElementById('search-input');
+
+            openSearchBtn.addEventListener('click', () => {
+                searchContainer.classList.remove('hidden');
+                openSearchBtn.classList.add('hidden');
+                searchInput.focus();
+            });
+
+            closeSearchBtn.addEventListener('click', () => {
+                searchContainer.classList.add('hidden');
+                openSearchBtn.classList.remove('hidden');
+                if (currentSearchQuery) {
+                    searchInput.value = '';
+                    currentSearchQuery = '';
+                    fetchProductsPage(1);
+                    updateURL();
+                }
+            });
+
+            const debouncedSearch = debounce((query) => {
+                currentSearchQuery = query;
+                currentCategoryFilter = 'all'; // Reset other filters when searching
+                currentTagFilter = 'all';
+                fetchProductsPage(1);
+                updateURL();
+                updateActiveUI();
+            }, 500);
+
+            searchInput.addEventListener('input', (e) => {
+                debouncedSearch(e.target.value);
+            });
+
 
             // --- Other listeners ---
             const mobileMenuBtn = document.getElementById('mobile-menu-btn');
