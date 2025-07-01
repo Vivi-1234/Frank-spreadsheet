@@ -201,30 +201,6 @@
             background-color: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
         }
-        .pagination-btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #9CA3AF;
-            background: transparent;
-            transition: all 0.3s ease;
-            border-radius: 0.5rem;
-            cursor: pointer;
-        }
-        .pagination-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.1);
-            color: #F9FAFB;
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-        .pagination-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .pagination-btn.active {
-            background: #FFFFFF;
-            color: #0D0D0D;
-            border-color: #FFFFFF;
-            font-weight: 600;
-        }
         /* Search Bar Styles */
         #search-container {
             position: relative;
@@ -243,6 +219,16 @@
             background-color: rgba(255, 255, 255, 0.15);
             border-color: rgba(255, 255, 255, 0.3);
             outline: none;
+        }
+        #loading-indicator {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            grid-column: 1 / -1; /* Span all columns */
+        }
+        #loading-indicator.visible {
+            display: flex;
         }
     </style>
 </head>
@@ -320,7 +306,10 @@
         <section id="product-section" class="pt-8 md:pt-12 fade-in-up">
             <div id="category-filter-container" class="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12"></div>
             <div id="product-list-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[500px]"></div>
-            <div id="pagination-container" class="flex justify-center items-center mt-12 space-x-2"></div>
+            <div id="loading-indicator">
+                <div class="w-8 h-8 border-4 border-gray-600 border-t-white rounded-full animate-spin"></div>
+            </div>
+            <div id="pagination-container" class="hidden flex justify-center items-center mt-12 space-x-2"></div>
         </section>
 
     </main>
@@ -351,6 +340,9 @@
         let cnyToUsdRate = 0.14, userCountryCode = null;
         let currentPage = 1;
         const pageSize = 48;
+        let isLoadingMore = false;
+        let allProductsLoaded = false;
+        let scrollObserver = null;
 
         // --- Core Logic ---
         
@@ -412,12 +404,19 @@
             }
         }
         
-        function renderProducts(productArray, containerId) {
+        function renderProducts(productArray, containerId, append = false) {
             const productContainer = document.getElementById(containerId);
             if (!productContainer) return;
 
+            if (!append) {
+                productContainer.innerHTML = '';
+            }
+
             if (!productArray || productArray.length === 0) {
-                productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found.</p>`;
+                if (!append) {
+                    productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">No products found.</p>`;
+                }
+                allProductsLoaded = true;
                 return;
             }
             
@@ -454,59 +453,7 @@
                     </a>`;
             }).join('');
 
-            productContainer.innerHTML = productsHTML;
-        }
-
-        function renderPagination(totalItems, currentPage) {
-            const paginationContainer = document.getElementById('pagination-container');
-            if (!paginationContainer) return;
-            
-            const totalPages = Math.ceil(totalItems / pageSize);
-            paginationContainer.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-
-            let paginationHTML = '';
-            
-            paginationHTML += `<button class="pagination-btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
-
-            const maxPagesToShow = 5;
-            let startPage, endPage;
-            if (totalPages <= maxPagesToShow) {
-                startPage = 1;
-                endPage = totalPages;
-            } else {
-                const maxPagesBeforeCurrent = Math.floor(maxPagesToShow / 2);
-                const maxPagesAfterCurrent = Math.ceil(maxPagesToShow / 2) - 1;
-                if (currentPage <= maxPagesBeforeCurrent) {
-                    startPage = 1;
-                    endPage = maxPagesToShow;
-                } else if (currentPage + maxPagesAfterCurrent >= totalPages) {
-                    startPage = totalPages - maxPagesToShow + 1;
-                    endPage = totalPages;
-                } else {
-                    startPage = currentPage - maxPagesBeforeCurrent;
-                    endPage = currentPage + maxPagesAfterCurrent;
-                }
-            }
-
-            if (startPage > 1) {
-                paginationHTML += `<button class="pagination-btn" data-page="1">1</button>`;
-                if (startPage > 2) paginationHTML += `<span class="px-2">...</span>`;
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                paginationHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) paginationHTML += `<span class="px-2">...</span>`;
-                paginationHTML += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
-            }
-
-            paginationHTML += `<button class="pagination-btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
-            
-            paginationContainer.innerHTML = paginationHTML;
+            productContainer.insertAdjacentHTML('beforeend', productsHTML);
         }
 
         function updateURL() {
@@ -521,22 +468,22 @@
             } else {
                 url.searchParams.delete('q');
             }
-            if (currentPage > 1) {
-                url.searchParams.set('page', currentPage);
-            } else {
-                url.searchParams.delete('page');
-            }
-            history.pushState({tag: currentTagFilter, category: currentCategoryFilter, page: currentPage, q: currentSearchQuery}, '', url);
+            // Page param is no longer needed for infinite scroll
+            url.searchParams.delete('page');
+            history.pushState({tag: currentTagFilter, category: currentCategoryFilter, q: currentSearchQuery}, '', url);
         }
         
-        async function fetchProductsPage(page, options = { shouldScroll: false }) {
-            currentPage = page;
+        async function fetchProductsPage(page) {
+            if (isLoadingMore || allProductsLoaded) return;
+            
+            isLoadingMore = true;
+            if(page === 1) {
+                document.getElementById('product-list-container').innerHTML = '';
+            }
+            document.getElementById('loading-indicator').classList.add('visible');
+
             const from = (page - 1) * pageSize;
             const to = from + pageSize - 1;
-
-            const productContainer = document.getElementById('product-list-container');
-            productContainer.innerHTML = `<p class="text-center text-gray-500 text-lg col-span-full">Loading products...</p>`;
-            document.getElementById('pagination-container').innerHTML = '';
 
             let query = db.from('products').select('*', { count: 'exact' }).eq('is_active', true);
 
@@ -553,21 +500,45 @@
             query = query.order('display_order').range(from, to);
 
             const { data, error, count } = await query;
+            
+            isLoadingMore = false;
+            document.getElementById('loading-indicator').classList.remove('visible');
 
             if (error) {
                 console.error("Error fetching products:", error);
-                productContainer.innerHTML = `<p class="text-center text-red-500 text-lg col-span-full">Failed to load products.</p>`;
+                document.getElementById('product-list-container').innerHTML = `<p class="text-center text-red-500 text-lg col-span-full">Failed to load products.</p>`;
                 return;
             }
 
-            renderProducts(data, 'product-list-container');
-            renderPagination(count, currentPage);
-            
-            if (options.shouldScroll) {
-                const productSection = document.getElementById('product-section');
-                if (productSection) {
-                    productSection.scrollIntoView({ behavior: 'smooth' });
+            renderProducts(data, 'product-list-container', page > 1);
+
+            if (data.length < pageSize || (page * pageSize) >= count) {
+                allProductsLoaded = true;
+                if (scrollObserver) scrollObserver.disconnect();
+            } else {
+                setupInfiniteScroll();
+            }
+        }
+
+        function setupInfiniteScroll() {
+            if (scrollObserver) scrollObserver.disconnect();
+
+            const options = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.5 
+            };
+
+            scrollObserver = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    currentPage++;
+                    fetchProductsPage(currentPage);
                 }
+            }, options);
+
+            const lastProduct = document.querySelector('#product-list-container > a:last-child');
+            if (lastProduct) {
+                scrollObserver.observe(lastProduct);
             }
         }
 
@@ -599,7 +570,7 @@
                     if (endTime > new Date()) {
                         document.getElementById('flash-sale-section').classList.remove('hidden');
                         setupCountdown(endTime);
-                        renderProducts(flashSaleProducts, 'flash-sale-product-list');
+                        renderProducts(flashSaleProducts, 'flash-sale-product-list', false);
                     }
                 }
 
@@ -646,7 +617,7 @@
                 
                 initializeFilters();
                 updateActiveUI();
-                fetchProductsPage(currentPage, { shouldScroll: new URLSearchParams(window.location.search).has('page') }); 
+                fetchProductsPage(currentPage); 
 
             } catch (error) {
                 console.error('Error loading initial data:', error);
@@ -662,7 +633,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             currentTagFilter = urlParams.get('tag') || 'all';
             currentSearchQuery = urlParams.get('q') || '';
-            currentPage = parseInt(urlParams.get('page') || '1');
+            currentPage = 1; // Always start at page 1 for infinite scroll
             currentCategoryFilter = 'all'; 
 
             if (currentSearchQuery) {
@@ -700,21 +671,25 @@
             categoryContainer?.addEventListener('click', e => {
                 const button = e.target.closest('.filter-btn');
                 if (button) {
+                    currentPage = 1;
+                    allProductsLoaded = false;
                     currentCategoryFilter = button.dataset.category;
-                    currentSearchQuery = ''; // Clear search when category changes
+                    currentSearchQuery = ''; 
                     document.getElementById('search-input').value = '';
-                    fetchProductsPage(1, { shouldScroll: true }); 
+                    fetchProductsPage(1); 
                     updateActiveUI();
                     updateURL();
                 }
             });
             
             const handleTagClick = (tag) => {
+                currentPage = 1;
+                allProductsLoaded = false;
                 currentTagFilter = tag;
                 currentCategoryFilter = 'all';
                 currentSearchQuery = '';
                 document.getElementById('search-input').value = '';
-                fetchProductsPage(1, { shouldScroll: true }); 
+                fetchProductsPage(1); 
                 updateActiveUI();
             };
 
@@ -755,15 +730,6 @@
                 }
             });
 
-            document.getElementById('pagination-container').addEventListener('click', e => {
-                const button = e.target.closest('.pagination-btn');
-                if (button && !button.disabled) {
-                    const page = parseInt(button.dataset.page);
-                    fetchProductsPage(page, { shouldScroll: true });
-                    updateURL();
-                }
-            });
-
             // --- Search Listeners ---
             const openSearchBtn = document.getElementById('open-search-btn');
             const closeSearchBtn = document.getElementById('close-search-btn');
@@ -782,14 +748,18 @@
                 if (currentSearchQuery) {
                     searchInput.value = '';
                     currentSearchQuery = '';
+                    currentPage = 1;
+                    allProductsLoaded = false;
                     fetchProductsPage(1);
                     updateURL();
                 }
             });
 
             const debouncedSearch = debounce((query) => {
+                currentPage = 1;
+                allProductsLoaded = false;
                 currentSearchQuery = query;
-                currentCategoryFilter = 'all'; // Reset other filters when searching
+                currentCategoryFilter = 'all'; 
                 currentTagFilter = 'all';
                 fetchProductsPage(1);
                 updateURL();
