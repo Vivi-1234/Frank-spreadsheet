@@ -143,7 +143,7 @@
         // --- HTML Templates ---
         const templates = {
             dashboard: `<div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold text-text-primary">Dashboard</h2><div class="flex items-center gap-4"><div class="flex items-center gap-2"><input id="date-range-picker" class="input" placeholder="Select date range"></div><button id="export-excel-btn" class="btn btn-secondary text-sm"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export Data</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"><div class="panel p-5"><p class="text-sm text-text-secondary">Total Site Visits</p><p id="total-visits" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Product Clicks</p><p id="total-product-clicks" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Total Products</p><p id="total-products" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Active Discounts</p><p id="active-discounts" class="text-2xl font-bold text-text-primary">0</p></div><div class="panel p-5"><p class="text-sm text-text-secondary">Top Product</p><p id="top-product" class="text-lg font-bold truncate text-text-primary">N/A</p></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-8"><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Site Visit Trend</h3><div class="h-64"><canvas id="visits-chart"></canvas></div></div><div class="panel p-6"><h3 class="font-semibold mb-4 text-text-primary">Product Click Trend</h3><div class="h-64"><canvas id="product-clicks-chart"></canvas></div></div></div>`,
-            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><div class="p-6 flex justify-between items-center"><h3 class="font-semibold text-lg">Existing Products</h3><div class="flex items-center gap-4"><div class="w-64"><input type="text" id="product-search-input" class="input" placeholder="Search by name..."></div><button id="import-products-btn" class="btn btn-secondary btn-xs"><i data-lucide="upload" class="mr-2 h-4 w-4"></i>Import</button><button id="export-products-btn" class="btn btn-secondary btn-xs"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export</button><input type="file" id="import-file-input" class="hidden" accept=".xlsx, .csv"></div></div><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4" style="min-width: 300px;">Product</th><th class="p-4" style="min-width: 150px;">Brand</th><th class="p-4" style="min-width: 150px;">Category</th><th class="p-4" style="min-width: 150px;">Tags</th><th class="p-4">Price</th><th class="p-4" style="min-width: 120px;">URL</th><th class="p-4" style="min-width: 100px;">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list"></tbody></table></div><div id="pagination-controls" class="p-4 flex justify-between items-center border-t border-border-color"></div></div></div>`,
+            products: `<div class="space-y-8"><h2 class="text-2xl font-bold text-text-primary">Product Management</h2><div class="panel p-6"><h3 class="font-semibold mb-4 text-lg">Add New Product(s)</h3><div id="add-product-forms-container" class="space-y-4"></div><div class="mt-4 flex justify-between"><button id="add-product-form-row-btn" class="btn btn-secondary"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Another</button><button id="submit-all-new-products-btn" class="btn btn-primary"><i data-lucide="upload-cloud" class="mr-2 h-4 w-4"></i>Submit All</button></div></div><div class="panel"><div class="p-6 flex justify-between items-center"><h3 class="font-semibold text-lg">Existing Products</h3><div class="flex items-center gap-4"><div class="w-64"><input type="text" id="product-search-input" class="input" placeholder="Search by name..."></div><button id="import-products-btn" class="btn btn-secondary btn-xs"><i data-lucide="upload" class="mr-2 h-4 w-4"></i>Import</button><button id="export-products-btn" class="btn btn-secondary btn-xs"><i data-lucide="download" class="mr-2 h-4 w-4"></i>Export</button><input type="file" id="import-file-input" class="hidden" accept=".xlsx, .csv"><button id="download-template-btn" class="btn btn-secondary btn-xs"><i data-lucide="file-spreadsheet" class="mr-2 h-4 w-4"></i>Template</button></div></div><div id="bulk-actions-bar" class="hidden bg-gray-900 border-y border-border-color p-3 flex items-center justify-between"><div><span id="selected-count">0</span> products selected</div><div class="flex items-center gap-2"><button id="bulk-toggle-discount-btn" class="btn btn-secondary btn-xs">Toggle Discount</button><button id="bulk-delete-btn" class="btn btn-danger btn-xs">Delete Selected</button></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-xs text-text-secondary uppercase bg-black"><tr><th class="p-4 w-8"><input type="checkbox" id="select-all-products" class="rounded border-gray-600 bg-gray-800 text-white focus:ring-white"></th><th class="p-4 w-10">Sort</th><th class="p-4" style="min-width: 300px;">Product</th><th class="p-4" style="min-width: 150px;">Brand</th><th class="p-4" style="min-width: 150px;">Category</th><th class="p-4" style="min-width: 150px;">Tags</th><th class="p-4">Price</th><th class="p-4" style="min-width: 120px;">URL</th><th class="p-4" style="min-width: 100px;">Discount</th><th class="p-4">Active</th><th class="p-4">Expires</th><th class="p-4 text-right">Actions</th></tr></thead><tbody id="product-list"></tbody></table></div><div id="pagination-controls" class="p-4 flex justify-between items-center border-t border-border-color"></div></div></div>`,
             brands: `<h2 class="text-2xl font-bold text-text-primary mb-6">Brand Management</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage product brands. Drag to reorder.</p><div class="flex items-center gap-2 mb-4"><input type="text" id="new-brand-input" class="input flex-grow" placeholder="Enter new brand name"><button id="add-brand-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="brand-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-brands-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             tags: `<h2 class="text-2xl font-bold text-text-primary mb-6">Tag Management</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage special tags like "Sales", "Top Selling", etc. Drag to reorder.</p><div class="flex items-center gap-2 mb-4"><input type="text" id="new-tag-input" class="input flex-grow" placeholder="Enter new tag name (e.g., Sales)"><button id="add-tag-btn" class="btn btn-secondary"><i data-lucide="plus" class="h-4 w-4"></i></button></div><div id="tag-list" class="space-y-3 mb-4 border-t border-border-color pt-4"></div><div class="text-right mt-4"><button id="save-tags-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
             navigation: `<h2 class="text-2xl font-bold text-text-primary mb-6">Navigation (Categories)</h2><div class="panel p-6 max-w-2xl"><p class="text-sm text-text-secondary mb-4">Manage the category filter buttons on the homepage. Drag to reorder.</p><div id="navigation-list" class="space-y-3 mb-4"></div><div class="mt-4"><button id="add-nav-btn" class="btn btn-secondary text-sm"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Add Nav Item</button></div><div class="text-right mt-4"><button id="save-nav-btn" class="btn btn-primary">Save All Changes</button></div></div>`,
@@ -329,6 +329,7 @@
             document.getElementById('import-products-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
             document.getElementById('import-file-input').addEventListener('change', handleImportFile);
             document.getElementById('export-products-btn').addEventListener('click', exportProductsToExcel);
+            document.getElementById('download-template-btn').addEventListener('click', downloadTemplate);
             
             const searchInput = document.getElementById('product-search-input');
             const debouncedSearch = debounce(() => loadProducts(1, searchInput.value), 500);
@@ -478,9 +479,9 @@
                     <td class="p-4"><input type="checkbox" class="product-checkbox rounded border-gray-600 bg-gray-800 text-white focus:ring-white" data-id="${p.id}"></td>
                     <td class="p-4"><i data-lucide="grip-vertical" class="cursor-move text-gray-500"></i></td>
                     <td class="p-4"><div class="flex items-center gap-3"><img src="${p.image_url || 'https://placehold.co/40x40/111111/AAAAAA?text=??'}" class="w-10 h-10 object-cover rounded"><span class="font-semibold">${p.name}</span></div></td>
-                    <td class="p-4" style="min-width: 180px;">${brandDropdown}</td>
-                    <td class="p-4" style="min-width: 180px;">${categoryDropdown}</td>
-                    <td class="p-4" style="min-width: 180px;">${tagsDropdown}</td>
+                    <td class="p-4" style="min-width: 150px;">${brandDropdown}</td>
+                    <td class="p-4" style="min-width: 150px;">${categoryDropdown}</td>
+                    <td class="p-4" style="min-width: 150px;">${tagsDropdown}</td>
                     <td class="p-4 font-medium">¥${p.price}</td>
                     <td class="p-4" style="min-width: 120px;"><div class="truncate max-w-[15ch]">${p.target_url || '—'}</div></td>
                     <td class="p-4">${discountFactorText}</td>
@@ -1563,6 +1564,101 @@
                 showAlert('Data exported successfully!');
             } catch (error) { showAlert('Export failed: ' + error.message, true);
             } finally { showLoading(false); }
+        }
+
+        function exportProductsToExcel() {
+            const dataToExport = productsCache.map(p => ({
+                id: p.id,
+                name: p.name,
+                brand: p.brands?.name || '',
+                category: p.category,
+                tags: p.tags,
+                price: p.price,
+                target_url: p.target_url,
+                discount_factor: p.discount_factor,
+                discount_is_active: p.discount_is_active,
+                discount_expires_at: p.discount_expires_at,
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+            XLSX.writeFile(workbook, `products_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            showAlert('Products exported!');
+        }
+
+        function downloadTemplate() {
+            const templateData = [{
+                name: "Example Product",
+                price: 199.99,
+                target_url: "https://example.com/product/123",
+                image_url: "https://example.com/image.jpg",
+                brand_name: "Example Brand", // Must match a name in your Brands table
+                category: "T-Shirts,Summer", // Comma-separated
+                tags: "Best Selling", // Comma-separated
+                discount_factor: 0.8, // e.g., 0.8 for 20% off
+                discount_is_active: true, // true or false
+                discount_expires_at: "2025-12-31T23:59:59" // ISO 8601 format
+            }];
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Import Template');
+            XLSX.writeFile(workbook, 'product_import_template.xlsx');
+        }
+
+        async function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showLoading(true);
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const productsToImport = XLSX.utils.sheet_to_json(firstSheet);
+
+                    const productsToUpsert = [];
+                    for (const product of productsToImport) {
+                        let brand_id = null;
+                        if (product.brand_name) {
+                            const brand = brandsCache.find(b => b.name.toLowerCase() === product.brand_name.toLowerCase());
+                            if (brand) {
+                                brand_id = brand.id;
+                            } else {
+                                showAlert(`Brand "${product.brand_name}" not found. Please add it first.`, true);
+                            }
+                        }
+                        
+                        productsToUpsert.push({
+                            id: product.id, // If id exists, it will update, otherwise insert
+                            name: product.name,
+                            price: product.price,
+                            target_url: product.target_url,
+                            image_url: product.image_url,
+                            brand_id: brand_id,
+                            category: product.category,
+                            tags: product.tags,
+                            discount_factor: product.discount_factor,
+                            discount_is_active: product.discount_is_active,
+                            discount_expires_at: product.discount_expires_at ? new Date(product.discount_expires_at).toISOString() : null,
+                        });
+                    }
+
+                    if (productsToUpsert.length > 0) {
+                        const { error } = await db.from('products').upsert(productsToUpsert, { onConflict: 'id' });
+                        if (error) throw error;
+                        showAlert(`${productsToUpsert.length} products imported/updated successfully!`);
+                        await loadProducts(1);
+                    }
+                } catch (error) {
+                    showAlert('Import failed: ' + error.message, true);
+                } finally {
+                    showLoading(false);
+                    event.target.value = ''; // Reset file input
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
         
         // --- Authentication and Initialization ---
