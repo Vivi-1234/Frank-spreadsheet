@@ -17,9 +17,9 @@
         body { font-family: 'Inter', sans-serif; background-color: #0D0D0D; color: #F9FAFB; }
         body::before { content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-image: url('https://images.unsplash.com/photo-1533134486753-c833f0ed4866?q=80&w=2940&auto=format&fit=crop'); background-size: cover; background-position: center center; opacity: 0.1; z-index: -1; }
         .header { background-color: rgba(13, 13, 13, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .nav-link { position: relative; transition: color 0.3s ease; }
-        .nav-link:after { content: ''; position: absolute; width: 0; height: 2px; display: block; margin-top: 4px; right: 0; background: #FFFFFF; transition: width 0.3s ease; }
-        .nav-link.active:after, .nav-link:hover:after { width: 100%; left: 0; }
+        .nav-link { position: relative; transition: color 0.3s ease; padding-bottom: 6px; }
+        .nav-link:after { content: ''; position: absolute; width: 0; height: 2px; display: block; margin-top: 4px; right: 0; background: #FFFFFF; transition: width 0.3s ease; bottom: 0; }
+        .nav-link.active:after, .nav-link:hover:after, .nav-link-active:after { width: 100%; left: 0; }
         .fade-in-up { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
         .fade-in-up.visible { opacity: 1; transform: translateY(0); }
         .social-sidebar-icon { display: block; width: 48px; height: 48px; transition: transform 0.3s ease; }
@@ -139,26 +139,49 @@
 
         async function initializePage() {
             try {
-                const [settingsRes, stepsRes, socialRes, tagsRes] = await Promise.all([
+                const [settingsRes, stepsRes, socialRes, brandsRes] = await Promise.all([
                     db.from('how_to_buy_settings').select('video_url, signup_url').limit(1).single(),
                     db.from('how_to_buy_steps').select('*').order('display_order'),
                     db.from('social_links').select('*').order('display_order'),
-                    db.from('product_tags').select('name').order('display_order')
+                    db.from('brands').select('*').order('name')
                 ]);
 
                 const settings = settingsRes.data;
                 const allSteps = stepsRes.data;
                 const socialLinks = socialRes.data;
-                const tags = tagsRes.data;
+                const brands = brandsRes.data || [];
 
                 // --- Navigation ---
                 const mainNavContainer = document.getElementById('main-nav');
                 const mobileNavContent = document.getElementById('mobile-nav-content');
                 if (mainNavContainer && mobileNavContent) {
-                    let navHTML = `<a href="/" class="nav-link text-lg md:text-sm font-medium">Home</a><a href="/how-to-buy" class="nav-link active text-lg md:text-sm font-medium">How-to-buy</a>`;
-                    if (tags) { navHTML += tags.map(tag => `<a href="/?tag=${encodeURIComponent(tag.name)}" class="nav-link text-lg md:text-sm font-medium">${tag.name}</a>`).join(''); }
-                    mainNavContainer.innerHTML = navHTML.replaceAll('text-lg md:text-sm', 'text-sm');
-                    mobileNavContent.innerHTML = navHTML;
+                    const brandDropdownItemsHTML = brands.map(brand => `<a href="/?brand=${brand.id}" data-brandid="${brand.id}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">${brand.name}</a>`).join('');
+                    const allBrandsLinkHTML = `<a href="/" data-brandid="all" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">All Brands</a>`;
+                    const desktopDropdownHTML = `
+                        <div class="relative nav-link" id="brands-dropdown">
+                            <button id="brands-btn" class="text-sm font-medium flex items-center">
+                                Brands <i data-lucide="chevron-down" class="h-4 w-4 ml-1"></i>
+                            </button>
+                            <div id="brands-menu" class="hidden absolute right-0 mt-2 w-48 bg-[#1a1a1a] rounded-md shadow-lg z-50 ring-1 ring-black ring-opacity-5 py-1">
+                                ${allBrandsLinkHTML}
+                                ${brandDropdownItemsHTML}
+                            </div>
+                        </div>`;
+                    mainNavContainer.innerHTML = `<a href="/" class="nav-link text-sm font-medium">Home</a>${desktopDropdownHTML}<a href="/how-to-buy.html" class="nav-link active text-sm font-medium">How-to-buy</a>`;
+                    
+                    const mobileBrandDropdownItemsHTML = brands.map(brand => `<a href="/?brand=${brand.id}" data-brandid="${brand.id}" class="block py-2 text-lg text-gray-300 hover:text-white">${brand.name}</a>`).join('');
+                    const mobileAllBrandsLinkHTML = `<a href="/" data-brandid="all" class="block py-2 text-lg text-gray-300 hover:text-white">All Brands</a>`;
+                    const mobileDropdownHTML = `
+                        <div class="relative w-full">
+                            <button id="mobile-brands-btn" class="nav-link text-lg font-medium flex justify-between items-center w-full">
+                                Brands <i data-lucide="chevron-down" class="h-5 w-5"></i>
+                            </button>
+                            <div id="mobile-brands-menu" class="hidden mt-2 pl-4 space-y-2">
+                                ${mobileAllBrandsLinkHTML}
+                                ${mobileBrandDropdownItemsHTML}
+                            </div>
+                        </div>`;
+                    mobileNavContent.innerHTML = `<a href="/" class="nav-link text-lg font-medium">Home</a><a href="/how-to-buy.html" class="nav-link active text-lg font-medium">How-to-buy</a>${mobileDropdownHTML}`;
                 }
 
                 // --- Hero Buttons & Video ---
@@ -294,6 +317,28 @@
                 });
             }
 
+            // Brands Dropdown
+             document.body.addEventListener('click', e => {
+                if (!e.target.closest('#brands-dropdown')) {
+                     document.getElementById('brands-menu')?.classList.add('hidden');
+                }
+                 if (!e.target.closest('#mobile-brands-btn')) {
+                     document.getElementById('mobile-brands-menu')?.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('brands-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('brands-menu').classList.toggle('hidden');
+            });
+
+            document.getElementById('mobile-brands-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('mobile-brands-menu').classList.toggle('hidden');
+                lucide.createIcons();
+            });
+
+
             // Sticky Nav Active State
             const sections = document.querySelectorAll('#steps-section > div');
             const navLinks = document.querySelectorAll('.step-nav-link');
@@ -314,9 +359,7 @@
                     if(isActive) activeLinkFound = true;
                 });
                 
-                // Fallback for when scrolling between sections
                 if (!activeLinkFound) {
-                    // Find the last section that is above the viewport
                     let lastVisibleSectionId = null;
                     for (const section of sections) {
                         if (section.getBoundingClientRect().top < (document.getElementById('sticky-step-nav').offsetHeight + 20)) {
