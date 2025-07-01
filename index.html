@@ -491,16 +491,13 @@
             productContainer.insertAdjacentHTML('beforeend', productsHTML);
         }
 
-        // ***** UPDATED: updateURL now handles all filters *****
         function updateURL() {
             const url = new URL(window.location);
-            // Clear all old filter params
             url.searchParams.delete('tag');
             url.searchParams.delete('category');
             url.searchParams.delete('q');
             url.searchParams.delete('page');
 
-            // Add current active filters
             if (currentTagFilter && currentTagFilter !== 'all') {
                 url.searchParams.set('tag', currentTagFilter);
             }
@@ -511,7 +508,6 @@
                 url.searchParams.set('q', currentSearchQuery);
             }
             
-            // Use replaceState to avoid polluting browser history with every filter change
             history.replaceState({tag: currentTagFilter, category: currentCategoryFilter, q: currentSearchQuery}, '', url);
         }
         
@@ -676,7 +672,6 @@
             setupAnimations();
         }
 
-        // ***** UPDATED: initializeFilters now reads all params *****
         function initializeFilters() {
             const urlParams = new URLSearchParams(window.location.search);
             currentTagFilter = urlParams.get('tag') || 'all';
@@ -709,7 +704,6 @@
             });
         }
 
-        // ***** UPDATED: Event handlers now reset state and update URL *****
         function setupEventListeners() {
             document.body.addEventListener('click', e => {
                 const card = e.target.closest('.product-card');
@@ -723,9 +717,8 @@
                     currentPage = 1;
                     allProductsLoaded = false;
                     currentCategoryFilter = button.dataset.category;
-                    // Reset other filters
+                    // ** FIX: Do NOT reset other filters, only search **
                     currentSearchQuery = ''; 
-                    currentTagFilter = 'all';
                     document.getElementById('search-input').value = '';
                     
                     fetchProductsPage(1); 
@@ -738,8 +731,7 @@
                 currentPage = 1;
                 allProductsLoaded = false;
                 currentTagFilter = tag;
-                // Reset other filters
-                currentCategoryFilter = 'all';
+                // ** FIX: Do NOT reset other filters, only search **
                 currentSearchQuery = '';
                 document.getElementById('search-input').value = '';
 
@@ -758,9 +750,12 @@
 
                 if (link.getAttribute('href').startsWith('/?tag=')) {
                     e.preventDefault();
+                    // ** FIX: When a main tag is clicked, it should be exclusive **
+                    currentCategoryFilter = 'all'; 
                     handleTagClick(tag);
                 } else if (link.getAttribute('href') === '/') {
                     e.preventDefault();
+                    currentCategoryFilter = 'all';
                     handleTagClick('all');
                 }
             });
@@ -774,10 +769,12 @@
 
                 if (link.getAttribute('href').startsWith('/?tag=')) {
                     e.preventDefault();
+                    currentCategoryFilter = 'all';
                     handleTagClick(tag);
                     toggleMobileMenu(false);
                 } else if (link.getAttribute('href') === '/') {
                     e.preventDefault();
+                    currentCategoryFilter = 'all';
                     handleTagClick('all');
                     toggleMobileMenu(false);
                 }
