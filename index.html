@@ -560,7 +560,13 @@
                 query = query.ilike('name', `%${currentSearchQuery}%`);
             }
 
-            const { data, error, count } = await query.order('display_order').range(from, to);
+            // ***** UPDATED: Smart Sorting Logic *****
+            // Sort by whether a product has tags (nulls and empty strings last), then by the original display order.
+            query = query.order('tags', { ascending: false, nullsFirst: false })
+                         .order('display_order', { ascending: true })
+                         .range(from, to);
+            
+            const { data, error, count } = await query;
             
             isLoadingMore = false;
             document.getElementById('loading-indicator').classList.remove('visible');
