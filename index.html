@@ -496,7 +496,7 @@
                     }
                 }
                 
-                const optimizedImageUrl = getOptimizedImageUrl(p.image_url, { width: 400, height: 400 });
+                const optimizedImageUrl = getOptimizedImageUrl(p.image_url, { width: 400, height: 400, quality: 75 });
 
                 return `
                     <a href="${appendRefParam(p.target_url)}" target="_blank" data-product-name="${p.name}" class="group block product-card relative">
