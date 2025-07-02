@@ -426,7 +426,7 @@
                 const bucketName = pathSegments[bucketIndex];
                 const imagePath = pathSegments.slice(bucketIndex + 1).join('/');
 
-                return `${SUPABASE_URL}/storage/v1/render/image/public/${bucketName}/${imagePath}?width=${options.width}&height=${options.height}&quality=${options.quality}&format=webp`;
+                return `${SUPABASE_URL}/storage/v1/render/image/public/${bucketName}/${imagePath}?width=${options.width}&height=${options.height}&quality=${options.quality}`;
 
             } catch (e) {
                 console.error("Failed to parse or transform image URL:", e);
