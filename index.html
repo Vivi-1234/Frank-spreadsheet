@@ -272,7 +272,6 @@
                 <a href="/" class="text-base sm:text-xl font-bold tracking-tighter truncate">Franks AUTHENTIC Spreadsheet</a>
                 <div class="flex items-center gap-4 md:gap-8">
                     <nav id="main-nav" class="hidden md:flex items-center space-x-4 md:space-x-8"></nav>
-                    <!-- Search Component -->
                     <div id="search-component" class="flex items-center">
                         <div id="search-container" class="relative hidden">
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"></i>
@@ -382,6 +381,24 @@
                 clearTimeout(timeout);
                 timeout = setTimeout(() => func.apply(this, args), delay);
             };
+        }
+
+        function updateBrandButtonText() {
+            const desktopBtn = document.getElementById('brands-btn');
+            const mobileBtn = document.getElementById('mobile-brands-btn');
+            if (!desktopBtn || !mobileBtn || !brandsCache) return;
+
+            let buttonText = 'Brands';
+            if (currentBrandFilter !== 'all') {
+                const selectedBrand = brandsCache.find(b => b.id.toString() === currentBrandFilter);
+                if (selectedBrand) {
+                    buttonText = selectedBrand.name;
+                }
+            }
+            
+            desktopBtn.innerHTML = `${buttonText} <i data-lucide="chevron-down" class="h-4 w-4 ml-1"></i>`;
+            mobileBtn.innerHTML = `${buttonText} <i data-lucide="chevron-down" class="h-5 w-5"></i>`;
+            lucide.createIcons();
         }
 
         async function logEvent(eventType, eventValue = null) {
@@ -707,6 +724,7 @@
                 
                 initializeFilters();
                 updateActiveUI();
+                updateBrandButtonText(); // Update button text on initial load
                 fetchProductsPage(currentPage); 
 
             } catch (error) {
@@ -756,7 +774,7 @@
                 const card = e.target.closest('.product-card');
                 if (card?.dataset.productName) logEvent('product_click', card.dataset.productName);
                 if (!e.target.closest('#brands-dropdown')) {
-                     document.getElementById('brands-menu')?.classList.add('hidden');
+                    document.getElementById('brands-menu')?.classList.add('hidden');
                 }
             });
             
@@ -787,6 +805,7 @@
                 fetchProductsPage(1); 
                 updateActiveUI();
                 updateURL();
+                updateBrandButtonText(); // Update button text on click
             };
 
             const setupMenuActions = (menuId) => {
@@ -851,6 +870,7 @@
                 fetchProductsPage(1);
                 updateURL();
                 updateActiveUI();
+                updateBrandButtonText();
             }, 500);
 
             searchInput.addEventListener('input', (e) => {
