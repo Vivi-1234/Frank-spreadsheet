@@ -442,12 +442,12 @@
             
             // Apply category filter
             if (currentFilters.category) {
-                query = query.eq('category', currentFilters.category);
+                query = query.ilike('category', `%${currentFilters.category}%`);
             }
             
             // Apply tags filter
             if (currentFilters.tags) {
-                query = query.contains('tags', [currentFilters.tags]);
+                query = query.ilike('tags', `%${currentFilters.tags}%`);
             }
 
             const { data, error, count } = await query.order('display_order').range(from, to);
