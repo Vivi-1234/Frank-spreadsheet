@@ -437,12 +437,16 @@
             }
             try {
                 const url = new URL(originalUrl);
-                const pathSegments = url.pathname.split('/');
-                const bucketIndex = pathSegments.findIndex(segment => segment === 'public') + 1;
-                if (bucketIndex >= pathSegments.length) return originalUrl;
+                // URL format: /storage/v1/object/public/{bucket}/{path}
+                const pathSegments = url.pathname.split('/').filter(s => s);
+                const publicIndex = pathSegments.indexOf('public');
                 
-                const bucketName = pathSegments[bucketIndex];
-                const imagePath = pathSegments.slice(bucketIndex + 1).join('/');
+                if (publicIndex === -1 || publicIndex >= pathSegments.length - 1) {
+                    return originalUrl;
+                }
+                
+                const bucketName = pathSegments[publicIndex + 1];
+                const imagePath = pathSegments.slice(publicIndex + 2).join('/');
 
                 return `${SUPABASE_URL}/storage/v1/render/image/public/${bucketName}/${imagePath}?width=${options.width}&height=${options.height}&quality=${options.quality}`;
 
