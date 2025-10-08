@@ -899,30 +899,27 @@
                 const iconElement = discountBox.querySelector('i');
                 const textSpan = discountBox.querySelector('#discount-text');
                 
-                if (!iconElement || !textSpan) {
-                    console.warn('Discount box elements not found');
-                    return;
-                }
-                
-                const iconContainer = iconElement.parentElement;
-                const originalText = textSpan.innerHTML;
-                const originalIconHTML = iconContainer.innerHTML;
+                if (iconElement && textSpan) {
+                    const iconContainer = iconElement.parentElement;
+                    const originalText = textSpan.innerHTML;
+                    const originalIconHTML = iconContainer.innerHTML;
 
-                discountBox.addEventListener('click', () => {
-                    navigator.clipboard.writeText('Frank').then(() => {
-                        textSpan.textContent = 'Copied!';
-                        iconContainer.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i>`;
-                        lucide.createIcons();
-                        
-                        setTimeout(() => {
-                            textSpan.innerHTML = originalText;
-                            iconContainer.innerHTML = originalIconHTML;
+                    discountBox.addEventListener('click', () => {
+                        navigator.clipboard.writeText('Frank').then(() => {
+                            textSpan.textContent = 'Copied!';
+                            iconContainer.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i>`;
                             lucide.createIcons();
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Failed to copy: ', err);
+                            
+                            setTimeout(() => {
+                                textSpan.innerHTML = originalText;
+                                iconContainer.innerHTML = originalIconHTML;
+                                lucide.createIcons();
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Failed to copy: ', err);
+                        });
                     });
-                });
+                }
             }
         }
         
