@@ -896,23 +896,18 @@
 
             const discountBox = document.getElementById('discount-code-box');
             if (discountBox) {
-                const iconElement = discountBox.querySelector('i');
                 const textSpan = discountBox.querySelector('#discount-text');
                 
-                if (iconElement && textSpan) {
-                    const iconContainer = iconElement.parentElement;
-                    const originalText = textSpan.innerHTML;
-                    const originalIconHTML = iconContainer.innerHTML;
+                if (textSpan) {
+                    const originalBoxHTML = discountBox.innerHTML;
 
                     discountBox.addEventListener('click', () => {
                         navigator.clipboard.writeText('Frank').then(() => {
-                            textSpan.textContent = 'Copied!';
-                            iconContainer.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i>`;
+                            discountBox.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4 mr-2 text-green-400"></i><span class="text-sm text-gray-300">Copied!</span>`;
                             lucide.createIcons();
                             
                             setTimeout(() => {
-                                textSpan.innerHTML = originalText;
-                                iconContainer.innerHTML = originalIconHTML;
+                                discountBox.innerHTML = originalBoxHTML;
                                 lucide.createIcons();
                             }, 2000);
                         }).catch(err => {
