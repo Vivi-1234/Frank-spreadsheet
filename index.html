@@ -432,28 +432,9 @@
             if (!originalUrl) {
                 return placeholder;
             }
-            if (!originalUrl.includes(SUPABASE_URL)) {
-                return originalUrl;
-            }
-            try {
-                const url = new URL(originalUrl);
-                // URL format: /storage/v1/object/public/{bucket}/{path}
-                const pathSegments = url.pathname.split('/').filter(s => s);
-                const publicIndex = pathSegments.indexOf('public');
-                
-                if (publicIndex === -1 || publicIndex >= pathSegments.length - 1) {
-                    return originalUrl;
-                }
-                
-                const bucketName = pathSegments[publicIndex + 1];
-                const imagePath = pathSegments.slice(publicIndex + 2).join('/');
-
-                return `${SUPABASE_URL}/storage/v1/render/image/public/${bucketName}/${imagePath}?width=${options.width}&height=${options.height}&quality=${options.quality}`;
-
-            } catch (e) {
-                console.error("Failed to parse or transform image URL:", e);
-                return placeholder;
-            }
+            // 直接返回原始 URL，因为 Supabase 渲染 API 需要额外配置
+            // 如果需要图片优化，可以考虑使用 CDN 或其他图片处理服务
+            return originalUrl;
         }
 
         function renderSkeleton(count) {
