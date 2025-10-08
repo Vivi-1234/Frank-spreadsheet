@@ -169,6 +169,7 @@
             line-height: 1.5rem;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -895,8 +896,15 @@
 
             const discountBox = document.getElementById('discount-code-box');
             if (discountBox) {
-                const iconContainer = discountBox.querySelector('i').parentElement;
+                const iconElement = discountBox.querySelector('i');
                 const textSpan = discountBox.querySelector('#discount-text');
+                
+                if (!iconElement || !textSpan) {
+                    console.warn('Discount box elements not found');
+                    return;
+                }
+                
+                const iconContainer = iconElement.parentElement;
                 const originalText = textSpan.innerHTML;
                 const originalIconHTML = iconContainer.innerHTML;
 
