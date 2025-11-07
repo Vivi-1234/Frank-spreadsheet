@@ -323,9 +323,9 @@ function copyDiscountCode() {
 // Log site visit
 async function logSiteVisit() {
   try {
-    await supabase.from('analytics').insert({
+    await supabase.from('analytics_events').insert({
       event_type: 'site_visit',
-      event_data: { page: 'products' }
+      event_value: 'Products Page'
     })
   } catch (error) {
     console.error('Error logging site visit:', error)
@@ -335,9 +335,9 @@ async function logSiteVisit() {
 // Log product click
 async function logProductClick(productName) {
   try {
-    await supabase.from('analytics').insert({
+    await supabase.from('analytics_events').insert({
       event_type: 'product_click',
-      event_data: { product_name: productName }
+      event_value: productName
     })
   } catch (error) {
     console.error('Error logging product click:', error)
