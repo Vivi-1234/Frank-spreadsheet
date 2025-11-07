@@ -145,14 +145,17 @@ async function loadDashboardData(startDate, endDate) {
 }
 
 function renderCharts(data, startDate, endDate) {
-  const visits = data.filter(e => e.event_type === 'site_visit' && e.country_code && e.country_code !== 'API Error' && e.country_code !== 'Network Error')
+  const visits = data.filter(e => e.event_type === 'site_visit')
   const clicks = data.filter(e => e.event_type === 'product_click')
 
-  // Generate date labels
+  // Generate date labels (using UTC to match database)
   const dateLabels = []
   const current = new Date(startDate)
   while (current <= endDate) {
-    dateLabels.push(new Date(current).toLocaleDateString('en-CA'))
+    const year = current.getFullYear()
+    const month = String(current.getMonth() + 1).padStart(2, '0')
+    const day = String(current.getDate()).padStart(2, '0')
+    dateLabels.push(`${year}-${month}-${day}`)
     current.setDate(current.getDate() + 1)
   }
 
@@ -172,7 +175,13 @@ function processDataForChart(events, labels) {
   }, {})
 
   events.forEach(event => {
-    const eventDate = new Date(event.created_at).toLocaleDateString('en-CA')
+    // Use UTC date to match the labels
+    const date = new Date(event.created_at)
+    const year = date.getUTCFullYear()
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(date.getUTCDate()).padStart(2, '0')
+    const eventDate = `${year}-${month}-${day}`
+    
     if (dataMap.hasOwnProperty(eventDate)) {
       dataMap[eventDate]++
     }
