@@ -253,6 +253,7 @@ onMounted(async () => {
   padding: 1rem 2rem;
   font-size: 1rem;
   font-weight: 700;
+  line-height: 1;
   border-radius: 9999px;
   transition: all 0.3s ease;
   text-decoration: none;
