@@ -3,27 +3,38 @@
     <!-- Login Screen -->
     <div class="w-full max-w-sm panel p-8">
       <h1 class="text-3xl font-bold text-center text-white mb-6">Admin Panel</h1>
-      <div class="space-y-4">
+      <form @submit.prevent="handleLogin" class="space-y-4">
+        <div>
+          <label for="email" class="label block mb-1">Email:</label>
+          <input
+            type="email"
+            id="email"
+            v-model="email"
+            class="input w-full"
+            placeholder="admin@example.com"
+            required
+          />
+        </div>
         <div>
           <label for="password" class="label block mb-1">Password:</label>
           <input
             type="password"
             id="password"
             v-model="password"
-            @keyup.enter="handleLogin"
             class="input w-full"
             placeholder="••••••••"
+            required
           />
         </div>
         <button
-          @click="handleLogin"
+          type="submit"
           :disabled="isLoggingIn"
           class="w-full btn btn-primary"
         >
           <span v-if="!isLoggingIn">Login</span>
           <div v-else class="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
         </button>
-      </div>
+      </form>
       <p v-if="errorMessage" class="text-red-400 text-sm text-center mt-4">{{ errorMessage }}</p>
     </div>
   </div>
@@ -154,6 +165,7 @@ import {
 const router = useRouter()
 const { isAuthenticated, login, logout, checkAuth } = useAuth()
 
+const email = ref('')
 const password = ref('')
 const isLoggingIn = ref(false)
 const errorMessage = ref('')
@@ -175,22 +187,22 @@ function closeMobileMenu() {
 }
 
 async function handleLogin() {
-  if (!password.value) {
-    errorMessage.value = 'Please enter a password.'
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Please enter email and password.'
     return
   }
 
   isLoggingIn.value = true
   errorMessage.value = ''
 
-  const result = await login(password.value)
+  const result = await login(email.value, password.value)
 
   isLoggingIn.value = false
 
   if (result.success) {
     router.push('/admin/dashboard')
   } else {
-    errorMessage.value = result.error || 'Invalid password or server error.'
+    errorMessage.value = result.error || 'Invalid credentials.'
   }
 }
 

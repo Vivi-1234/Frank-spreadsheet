@@ -1,110 +1,62 @@
 # 🚀 Vercel 部署指南
 
-## ⚠️ 重要：环境变量配置
+## ⚠️ 重要：创建 Admin 账号
 
-在 Vercel 部署后，必须配置以下环境变量才能使 Admin 登录正常工作：
+### 使用 Supabase Auth 认证
 
-### 步骤 1: 登录 Vercel Dashboard
-```
-https://vercel.com/dashboard
-```
+Frank-spreadsheet 使用 Supabase Auth 进行管理员认证，不需要配置环境变量或 API 路由。
 
-### 步骤 2: 进入项目设置
-```
-1. 选择 Frank-spreadsheet 项目
-2. 点击 Settings
-3. 选择 Environment Variables
-```
-
-### 步骤 3: 添加环境变量
-
-#### 必需的环境变量
-
-| 变量名 | 说明 | 示例值 |
-|--------|------|--------|
-| `ADMIN_PASSWORD` | Admin 登录密码 | `your-secure-password` |
-| `SUPABASE_JWT_SECRET` | Supabase JWT 密钥 | 从 Supabase Dashboard 获取 |
-
-#### 如何获取 Supabase JWT Secret
+### 步骤 1: 在 Supabase 创建管理员账号
 
 1. 登录 Supabase Dashboard: https://app.supabase.com
-2. 选择你的项目
-3. 进入 Settings → API
-4. 找到 **JWT Secret** 部分
-5. 复制 `JWT Secret` 值
+2. 选择你的项目：`xqlzhvfqibkgdgcycnel`
+3. 进入 **Authentication** → **Users**
+4. 点击 **Add User** → **Create new user**
+5. 填写信息：
+   ```
+   Email: admin@yourproject.com
+   Password: <设置一个强密码>
+   ✅ Auto Confirm User (自动确认用户)
+   ```
+6. 点击 **Create User**
 
-### 步骤 4: 设置环境变量
+### 步骤 2: 验证部署
 
-在 Vercel Environment Variables 页面：
-
-```
-Name: ADMIN_PASSWORD
-Value: <你的管理员密码>
-Environment: Production, Preview, Development
-✅ Save
-```
-
-```
-Name: SUPABASE_JWT_SECRET  
-Value: <从 Supabase 复制的 JWT Secret>
-Environment: Production, Preview, Development
-✅ Save
-```
-
-### 步骤 5: 重新部署
-
-设置完环境变量后，必须重新部署：
-
-```
-Deployments → 最新的 Deployment → ... → Redeploy
-```
-
-或者推送一个新的 commit 触发自动部署。
-
-## ✅ 验证部署
-
-部署完成后：
-
-1. 访问 `https://your-domain.vercel.app/admin`
-2. 输入你设置的 `ADMIN_PASSWORD`
+1. 访问 `https://frank-spreadsheet.vercel.app/admin`
+2. 输入创建的 Email 和 Password
 3. 应该能成功登录 ✨
 
 ## 🐛 常见问题
 
-### 1. 登录返回 500 错误
+### 1. 登录失败 "Invalid login credentials"
 ```
-原因: 环境变量未设置或设置错误
-解决: 检查 Vercel 环境变量是否正确配置
-```
-
-### 2. 登录返回 401 错误
-```
-原因: 密码不正确
-解决: 确认输入的密码与 ADMIN_PASSWORD 一致
+原因: Email 或密码不正确
+解决: 
+1. 检查 Supabase → Authentication → Users 确认账号已创建
+2. 确认 Email 和密码拼写正确
+3. 尝试在 Supabase 重置密码
 ```
 
-### 3. JWT Secret 错误
+### 2. 无法创建用户
 ```
-原因: SUPABASE_JWT_SECRET 不正确
-解决: 重新从 Supabase Dashboard 复制正确的 JWT Secret
-```
-
-## 📝 本地开发
-
-本地开发时，在项目根目录创建 `.env` 文件：
-
-```bash
-ADMIN_PASSWORD=your-password
-SUPABASE_JWT_SECRET=your-jwt-secret
+原因: Email 验证设置问题
+解决: 
+1. Supabase → Authentication → Settings
+2. 关闭 "Enable email confirmations"
+3. 或创建用户时勾选 "Auto Confirm User"
 ```
 
-**注意**: `.env` 文件不会被提交到 Git（已在 .gitignore 中）
+### 3. 登录后立即退出
+```
+原因: Session 问题
+解决: 清除浏览器缓存和 Local Storage 后重试
+```
 
 ## 🔒 安全建议
 
-1. **使用强密码**：Admin 密码至少 12 位，包含大小写字母、数字和特殊字符
-2. **定期更换**：定期更换 Admin 密码
-3. **不要分享**：不要在公开场合分享 JWT Secret
+1. **使用强密码**：至少 12 位，包含大小写字母、数字和特殊字符
+2. **限制管理员账号**：只创建必要的管理员账号
+3. **定期审查**：定期检查 Supabase → Authentication → Users 中的账号
 4. **HTTPS only**：确保生产环境使用 HTTPS
 
 ## 📚 相关文档

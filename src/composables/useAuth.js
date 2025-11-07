@@ -1,65 +1,73 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '@/config/supabase'
 
 const isAuthenticated = ref(false)
-const adminToken = ref(null)
+const user = ref(null)
 
 export function useAuth() {
   const router = useRouter()
 
-  const login = async (password) => {
+  const login = async (email, password) => {
     try {
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       })
 
-      if (!response.ok) {
-        return { success: false, error: `Authentication failed, status: ${response.status}` }
+      if (error) {
+        return { success: false, error: error.message }
       }
 
-      const result = await response.json()
-      
-      if (result.success && result.accessToken) {
-        adminToken.value = result.accessToken
+      if (data.user) {
+        user.value = data.user
         isAuthenticated.value = true
-        sessionStorage.setItem('supabase_admin_token', result.accessToken)
         return { success: true }
       }
 
-      return { success: false, error: 'Invalid password or server error.' }
+      return { success: false, error: 'Login failed' }
     } catch (error) {
       console.error('Login error:', error)
-      return { success: false, error: 'Login request failed. Check connection.' }
+      return { success: false, error: 'An error occurred during login' }
     }
   }
 
-  const logout = () => {
-    adminToken.value = null
-    isAuthenticated.value = false
-    sessionStorage.removeItem('supabase_admin_token')
-    router.push('/admin')
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut()
+      user.value = null
+      isAuthenticated.value = false
+      router.push('/admin')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
-  const checkAuth = () => {
-    const token = sessionStorage.getItem('supabase_admin_token')
-    if (token) {
-      adminToken.value = token
-      isAuthenticated.value = true
-      return true
+  const checkAuth = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      
+      if (currentUser) {
+        user.value = currentUser
+        isAuthenticated.value = true
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Check auth error:', error)
+      return false
     }
-    return false
   }
 
   const getAuthenticatedClient = () => {
-    // Return authenticated Supabase client
-    return null // Will be implemented when needed
+    // Supabase client automatically uses the current session
+    return supabase
   }
 
   return {
     isAuthenticated,
-    adminToken,
+    user,
     login,
     logout,
     checkAuth,
