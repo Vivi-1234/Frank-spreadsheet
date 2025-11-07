@@ -89,8 +89,18 @@ const totalStats = ref({
 
 async function loadDashboardData(startDate, endDate) {
   try {
-    const startStr = new Date(startDate.setHours(0, 0, 0, 0)).toISOString()
-    const endStr = new Date(endDate.setHours(23, 59, 59, 999)).toISOString()
+    // Create new Date objects to avoid mutation
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    
+    // Set to start and end of day in UTC
+    start.setUTCHours(0, 0, 0, 0)
+    end.setUTCHours(23, 59, 59, 999)
+    
+    const startStr = start.toISOString()
+    const endStr = end.toISOString()
+    
+    console.log('Loading dashboard data:', { startStr, endStr })
 
     // Fetch all-time stats for cards
     const [allVisitsRes, allClicksRes, productsRes] = await Promise.all([
@@ -99,12 +109,43 @@ async function loadDashboardData(startDate, endDate) {
       supabase.from('products').select('*', { count: 'exact' }).eq('is_active', true)
     ])
 
-    // Fetch date-range data for charts
-    const { data: rangeData, error } = await supabase
-      .from('analytics_events')
-      .select('*')
-      .gte('created_at', startStr)
-      .lte('created_at', endStr)
+    // Fetch date-range data for charts - get all data with pagination
+    let allRangeData = []
+    let fetchedCount = 0
+    const pageSize = 1000
+    let hasMore = true
+    
+    while (hasMore) {
+      const { data: pageData, error: pageError, count: totalCount } = await supabase
+        .from('analytics_events')
+        .select('event_type, created_at', { count: 'exact' })
+        .gte('created_at', startStr)
+        .lte('created_at', endStr)
+        .range(fetchedCount, fetchedCount + pageSize - 1)
+      
+      if (pageError) {
+        console.error('Error fetching page:', pageError)
+        break
+      }
+      
+      if (pageData && pageData.length > 0) {
+        allRangeData = allRangeData.concat(pageData)
+        fetchedCount += pageData.length
+        hasMore = pageData.length === pageSize && fetchedCount < totalCount
+        console.log(`Fetched ${fetchedCount} / ${totalCount} records`)
+      } else {
+        hasMore = false
+      }
+    }
+    
+    const rangeData = allRangeData
+    const error = null
+    
+    console.log('Analytics data fetched:', { 
+      returned: rangeData?.length,
+      startStr, 
+      endStr 
+    })
 
     if (error) {
       console.error('Error loading analytics:', error)
@@ -148,16 +189,23 @@ function renderCharts(data, startDate, endDate) {
   const visits = data.filter(e => e.event_type === 'site_visit')
   const clicks = data.filter(e => e.event_type === 'product_click')
 
-  // Generate date labels (using UTC to match database)
+  // Generate date labels (using local date to match user's timezone)
   const dateLabels = []
   const current = new Date(startDate)
-  while (current <= endDate) {
+  current.setHours(0, 0, 0, 0) // Start of day
+  
+  const end = new Date(endDate)
+  end.setHours(23, 59, 59, 999) // End of day
+  
+  while (current <= end) {
     const year = current.getFullYear()
     const month = String(current.getMonth() + 1).padStart(2, '0')
     const day = String(current.getDate()).padStart(2, '0')
     dateLabels.push(`${year}-${month}-${day}`)
     current.setDate(current.getDate() + 1)
   }
+  
+  console.log('Generated date labels:', dateLabels.length, 'days from', dateLabels[0], 'to', dateLabels[dateLabels.length - 1])
 
   // Process data
   const visitsData = processDataForChart(visits, dateLabels)
@@ -175,17 +223,21 @@ function processDataForChart(events, labels) {
   }, {})
 
   events.forEach(event => {
-    // Use UTC date to match the labels
+    // Use local date to match the labels (user's timezone)
     const date = new Date(event.created_at)
-    const year = date.getUTCFullYear()
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(date.getUTCDate()).padStart(2, '0')
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
     const eventDate = `${year}-${month}-${day}`
     
     if (dataMap.hasOwnProperty(eventDate)) {
       dataMap[eventDate]++
+    } else {
+      console.warn('Date not in range:', eventDate, 'Event:', event)
     }
   })
+  
+  console.log('Processed data map:', dataMap)
 
   return Object.values(dataMap)
 }
