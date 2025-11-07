@@ -60,15 +60,6 @@
         </router-link>
       </div>
 
-      <!-- Discount Badge -->
-      <div class="discount-highlight" @click="copyCode">
-        <Gift class="icon" />
-        <span v-if="!copied">Use Code <strong>FRANK</strong> for 15% OFF Shipping</span>
-        <span v-else class="copied-text">
-          <CheckCircle class="icon" />
-          Code Copied!
-        </span>
-      </div>
     </div>
 
     <!-- Footer -->
@@ -86,31 +77,16 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/config/supabase'
 import { getCachedData, setCachedData } from '@/utils/cache'
-import { Gift, CheckCircle } from 'lucide-vue-next'
 
 const stats = ref({
   products: 0,
   brands: 0
 })
 
-const copied = ref(false)
-
 // Track sign up button click
 function trackSignup() {
   console.log('Sign up button clicked - Ref: 200520423')
   // Analytics tracking can be added here
-}
-
-// Copy discount code
-function copyCode() {
-  navigator.clipboard?.writeText('FRANK').then(() => {
-    copied.value = true
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
-  }).catch((err) => {
-    console.error('Failed to copy: ', err)
-  })
 }
 
 onMounted(async () => {
@@ -351,45 +327,6 @@ onMounted(async () => {
   }
 }
 
-/* Discount Highlight */
-.discount-highlight {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  animation: fadeInUp 1s ease-out 1s both;
-}
-
-.discount-highlight:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.discount-highlight .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.discount-highlight strong {
-  color: #fff;
-  font-weight: 700;
-}
-
-.copied-text {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #22c55e;
-}
-
 /* Footer */
 .landing-footer {
   padding: 2rem;
@@ -478,11 +415,6 @@ onMounted(async () => {
   .btn-secondary {
     width: 100%;
     max-width: 320px;
-  }
-
-  .discount-highlight {
-    font-size: 0.8125rem;
-    padding: 0.75rem 1.25rem;
   }
 }
 
