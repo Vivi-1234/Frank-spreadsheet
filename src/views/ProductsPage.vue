@@ -27,7 +27,7 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Hero Section -->
-      <section class="text-center py-16 md:py-24 relative overflow-hidden rounded-lg fade-in-up">
+      <section class="text-center py-16 md:py-24 relative overflow-hidden rounded-lg fade-in-up" style="pointer-events: none;">
         <div
           v-if="siteSettings.hero_bg_url"
           :style="{ backgroundImage: `url(${siteSettings.hero_bg_url})` }"
@@ -46,6 +46,7 @@
             <div
               ref="discountBox"
               class="inline-flex items-center bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-full px-5 py-2.5 cursor-pointer transition-all duration-200"
+              style="pointer-events: auto;"
               @click="copyDiscountCode"
             >
               <Gift v-if="!codeCopied" class="h-4 w-4 mr-2 text-gray-400" />
@@ -64,36 +65,78 @@
       </section>
 
       <!-- Product Section -->
-      <section class="pt-4 md:pt-6 fade-in-up">
+      <section class="-mt-6 fade-in-up">
+        <!-- Price Sort -->
+        <div class="flex justify-center mb-4 md:mb-6 relative">
+          <div class="inline-flex items-center gap-1.5 md:gap-3 bg-white/5 border border-white/10 rounded-full px-2 md:px-4 py-1.5 md:py-2 relative z-10">
+            <span class="text-xs md:text-sm text-gray-400">Sort:</span>
+            <button
+              @click="sortOrder = 'default'"
+              :class="[
+                'px-2.5 md:px-3 py-1.5 md:py-2 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                sortOrder === 'default'
+                  ? 'bg-white text-black font-medium'
+                  : 'text-gray-400 hover:text-white'
+              ]"
+            >
+              Default
+            </button>
+            <button
+              @click="sortOrder = 'price_asc'"
+              :class="[
+                'px-2.5 md:px-3 py-1.5 md:py-2 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                sortOrder === 'price_asc'
+                  ? 'bg-white text-black font-medium'
+                  : 'text-gray-400 hover:text-white'
+              ]"
+            >
+              Low-High
+            </button>
+            <button
+              @click="sortOrder = 'price_desc'"
+              :class="[
+                'px-2.5 md:px-3 py-1.5 md:py-2 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                sortOrder === 'price_desc'
+                  ? 'bg-white text-black font-medium'
+                  : 'text-gray-400 hover:text-white'
+              ]"
+            >
+              High-Low
+            </button>
+          </div>
+        </div>
+
         <!-- Category Filters -->
-        <div class="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12">
-          <!-- All Button -->
-          <button
-            @click="selectCategory('all')"
-            :class="[
-              'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base',
-              currentCategory === 'all'
-                ? 'bg-white text-black border-white'
-                : 'bg-transparent text-gray-400 border-white/20 hover:bg-white/10 hover:text-white hover:border-white/30'
-            ]"
-          >
-            All
-          </button>
-          
-          <!-- Category Buttons -->
-          <button
-            v-for="cat in categories"
-            :key="cat.value"
-            @click="selectCategory(cat.value)"
-            :class="[
-              'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base',
-              currentCategory === cat.value
-                ? 'bg-white text-black border-white'
-                : 'bg-transparent text-gray-400 border-white/20 hover:bg-white/10 hover:text-white hover:border-white/30'
-            ]"
-          >
-            {{ cat.label }}
-          </button>
+        <div class="mb-8 md:mb-12">
+          <div class="flex md:flex-wrap md:justify-center gap-2 md:gap-3 overflow-x-auto pb-2 px-4 md:px-0 scrollbar-hide">
+            <!-- All Button -->
+            <button
+              @click="selectCategory('all')"
+              :class="[
+                'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base whitespace-nowrap flex-shrink-0',
+                currentCategory === 'all'
+                  ? 'bg-white text-black border-white'
+                  : 'bg-transparent text-gray-400 border-white/20 hover:bg-white/10 hover:text-white hover:border-white/30'
+              ]"
+            >
+              All
+            </button>
+            
+            <!-- Category Buttons -->
+            <button
+              v-for="cat in categories"
+              :key="cat.value"
+              @click="selectCategory(cat.value)"
+              :class="[
+                'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base whitespace-nowrap flex-shrink-0',
+                currentCategory === cat.value
+                  ? 'bg-white text-black border-white'
+                  : 'bg-transparent text-gray-400 border-white/20 hover:bg-white/10 hover:text-white hover:border-white/30'
+              ]"
+            >
+              {{ cat.label }}
+            </button>
+          </div>
         </div>
 
         <!-- Product Grid -->
@@ -166,6 +209,7 @@ const currentPage = ref(1)
 const pageSize = 48
 const exchangeRate = 0.14 // CNY to USD
 const codeCopied = ref(false)
+const sortOrder = ref('default') // 'default', 'price_asc', 'price_desc'
 
 let observer = null
 
@@ -260,10 +304,19 @@ async function loadProducts(reset = false) {
       query = query.like('category', `%${currentCategory.value}%`)
     }
     
-    const { data, error, count } = await query
-      .order('tags', { ascending: false, nullsFirst: false })
-      .order('display_order', { ascending: true })
-      .range(from, to)
+    // Apply sorting
+    if (sortOrder.value === 'price_asc') {
+      query = query.order('price', { ascending: true })
+    } else if (sortOrder.value === 'price_desc') {
+      query = query.order('price', { ascending: false })
+    } else {
+      // Default sorting
+      query = query
+        .order('tags', { ascending: false, nullsFirst: false })
+        .order('display_order', { ascending: true })
+    }
+    
+    const { data, error, count } = await query.range(from, to)
     
     if (error) throw error
     
@@ -395,6 +448,11 @@ watch(() => route.query, () => {
   initFiltersFromURL()
   loadProducts(true)
 }, { deep: true })
+
+// Watch for sort order changes
+watch(sortOrder, () => {
+  loadProducts(true)
+})
 </script>
 
 <style scoped>
@@ -444,5 +502,15 @@ watch(() => route.query, () => {
   50% {
     opacity: 0.5;
   }
+}
+
+/* Hide scrollbar for category filters on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
 }
 </style>
