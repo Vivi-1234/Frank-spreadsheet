@@ -146,10 +146,18 @@ const optimizedImageUrl = computed(() => {
   return url
 })
 
-// Get product URL without modification
+// Add ref parameter if not present
 const productUrl = computed(() => {
   if (!props.product.target_url) return '#'
-  return props.product.target_url
+  
+  // Check if URL already has a ref parameter
+  if (props.product.target_url.includes('ref=')) {
+    return props.product.target_url
+  }
+  
+  // Add ref=200520423 if not present
+  const separator = props.product.target_url.includes('?') ? '&' : '?'
+  return `${props.product.target_url}${separator}ref=200520423`
 })
 
 // Handle image loading error
