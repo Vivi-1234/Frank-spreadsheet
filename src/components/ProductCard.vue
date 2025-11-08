@@ -146,12 +146,10 @@ const optimizedImageUrl = computed(() => {
   return url
 })
 
-// Append ref parameter to product URL
+// Get product URL without modification
 const productUrl = computed(() => {
   if (!props.product.target_url) return '#'
-  
-  const separator = props.product.target_url.includes('?') ? '&' : '?'
-  return `${props.product.target_url}${separator}ref=frank`
+  return props.product.target_url
 })
 
 // Handle image loading error
