@@ -45,7 +45,7 @@
     <!-- Tag Badge -->
     <div
       v-if="tagBadgeText"
-      class="badge tag-badge absolute top-3 left-3 bg-amber-500/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-white/20"
+      :class="['badge tag-badge absolute top-3 left-3 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-white/20', tagBadgeColor]"
     >
       {{ tagBadgeText }}
     </div>
@@ -104,6 +104,15 @@ const tagBadgeText = computed(() => {
   if (!props.product.tags) return ''
   const firstTag = props.product.tags.split(',')[0].trim()
   return firstTag
+})
+
+// Get tag badge color based on tag type
+const tagBadgeColor = computed(() => {
+  const tag = tagBadgeText.value.toLowerCase()
+  if (tag === 'bestselling' || tag === 'best selling') {
+    return 'bg-red-500/80'
+  }
+  return 'bg-amber-500/70'
 })
 
 // Get image URL with optimization
