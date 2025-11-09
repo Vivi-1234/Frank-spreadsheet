@@ -129,9 +129,13 @@
               @click="selectCategory(cat.value)"
               :class="[
                 'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base whitespace-nowrap flex-shrink-0',
-                currentCategory === cat.value
-                  ? 'bg-white text-black border-white'
-                  : 'bg-transparent text-gray-400 border-white/20 hover:bg-white/10 hover:text-white hover:border-white/30'
+                cat.label.toLowerCase().includes('frank') && cat.label.toLowerCase().includes('pick')
+                  ? (currentCategory === cat.value
+                      ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black border-amber-400 font-bold shadow-lg shadow-amber-500/50'
+                      : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border-amber-500/50 hover:from-amber-500/30 hover:to-yellow-500/30 hover:border-amber-400 font-semibold')
+                  : (currentCategory === cat.value
+                      ? 'bg-white text-black border-white'
+                      : 'bg-transparent text-gray-400 border-white/20 hover:bg-white/10 hover:text-white hover:border-white/30')
               ]"
             >
               {{ cat.label }}
