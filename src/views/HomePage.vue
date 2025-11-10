@@ -73,7 +73,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '@/config/supabase'
-import { getCachedData, setCachedData } from '@/utils/cache'
 
 const stats = ref({
   products: 0,
@@ -88,21 +87,27 @@ function trackSignup() {
 
 onMounted(async () => {
   // Load stats
-  const cachedStats = getCachedData('frank_home_stats')
-  if (cachedStats) {
-    stats.value = cachedStats
-  } else {
+  try {
     const [productsRes, brandsRes] = await Promise.all([
       supabase.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('brands').select('id', { count: 'exact', head: true })
     ])
+    
+    if (productsRes.error) {
+      console.error('Error loading products count:', productsRes.error)
+    }
+    if (brandsRes.error) {
+      console.error('Error loading brands count:', brandsRes.error)
+    }
     
     stats.value = {
       products: productsRes.count || 0,
       brands: brandsRes.count || 0
     }
     
-    setCachedData('frank_home_stats', stats.value)
+    console.log('Stats loaded:', stats.value)
+  } catch (error) {
+    console.error('Error loading stats:', error)
   }
 })
 </script>
