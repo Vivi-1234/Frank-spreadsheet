@@ -40,27 +40,6 @@
           <p class="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-400">
             {{ siteSettings.subtitle || "The Only 100% Authentic Spreadsheet! Ungatekeeping The Best Overseas Brands" }}
           </p>
-          
-          <!-- Discount Code Box -->
-          <div class="mt-8">
-            <div
-              ref="discountBox"
-              class="inline-flex items-center bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-full px-5 py-2.5 cursor-pointer transition-all duration-200"
-              style="pointer-events: auto;"
-              @click="copyDiscountCode"
-            >
-              <Gift v-if="!codeCopied" class="h-4 w-4 mr-2 text-gray-400" />
-              <CheckCircle v-if="codeCopied" class="h-4 w-4 mr-2 text-green-400" />
-              <span class="text-sm text-gray-300">
-                <template v-if="!codeCopied">
-                  15% OFF Shipping Code: <span class="font-bold text-white">Frank</span>
-                </template>
-                <template v-else>
-                  Copied!
-                </template>
-              </span>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -191,7 +170,6 @@ import { supabase } from '@/config/supabase'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import ProductCard from '@/components/ProductCard.vue'
-import { Gift, CheckCircle } from 'lucide-vue-next'
 
 const route = useRoute()
 
@@ -212,7 +190,6 @@ const allProductsLoaded = ref(false)
 const currentPage = ref(1)
 const pageSize = 48
 const exchangeRate = 0.14 // CNY to USD
-const codeCopied = ref(false)
 const sortOrder = ref('default') // 'default', 'price_asc', 'price_desc'
 
 let observer = null
@@ -364,19 +341,6 @@ function initFiltersFromURL() {
   currentCategory.value = route.query.category || 'all'
 }
 
-// Copy discount code
-function copyDiscountCode() {
-  navigator.clipboard?.writeText('Frank').then(() => {
-    codeCopied.value = true
-    setTimeout(() => {
-      codeCopied.value = false
-    }, 2000)
-  }).catch((err) => {
-    console.error('Failed to copy: ', err)
-    showToast('Discount code: Frank')
-  })
-}
-
 // Log site visit
 async function logSiteVisit() {
   try {
@@ -399,15 +363,6 @@ async function logProductClick(productName) {
   } catch (error) {
     console.error('Error logging product click:', error)
   }
-}
-
-// Show toast notification
-function showToast(message) {
-  const toast = document.createElement('div')
-  toast.className = 'fixed top-5 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-full shadow-lg z-50 animate-fade-in'
-  toast.textContent = message
-  document.body.appendChild(toast)
-  setTimeout(() => toast.remove(), 2000)
 }
 
 // Setup infinite scroll
