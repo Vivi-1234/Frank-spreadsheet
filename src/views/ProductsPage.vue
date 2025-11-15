@@ -109,7 +109,7 @@
               :class="[
                 'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base whitespace-nowrap flex-shrink-0',
                 currentCategory === cat.value
-                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black border-amber-400 font-bold shadow-lg shadow-amber-500/50'
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black border-amber-400 font-bold'
                   : 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border-amber-500/50 hover:from-amber-500/30 hover:to-yellow-500/30 hover:border-amber-400 font-semibold'
               ]"
             >
@@ -122,7 +122,7 @@
               :class="[
                 'filter-btn px-4 sm:px-5 py-2 border rounded-full transition-all duration-300 text-sm sm:text-base whitespace-nowrap flex-shrink-0',
                 currentCategory === 'under_100'
-                  ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-500 font-bold shadow-lg shadow-red-500/50'
+                  ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-500 font-bold'
                   : 'bg-gradient-to-r from-red-500/20 to-rose-600/20 text-red-400 border-red-500/50 hover:from-red-500/30 hover:to-rose-600/30 hover:border-red-400 font-semibold'
               ]"
             >
