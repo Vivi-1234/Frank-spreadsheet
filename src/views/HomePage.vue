@@ -16,8 +16,7 @@
 
       <!-- Subtitle -->
       <p class="landing-subtitle">
-        Ungatekeeping the best overseas brands.<br>
-        Curated. Authentic. Direct.
+        No Reps. No Fakes. Real Brands. Global Access.
       </p>
 
       <!-- Stats Bar -->
