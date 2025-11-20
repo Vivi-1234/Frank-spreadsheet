@@ -49,12 +49,25 @@
             </div>
           </div>
 
-          <!-- Mobile Menu Button -->
-          <button @click="toggleMobileMenu" class="md:hidden p-2">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+          <!-- Mobile Actions -->
+          <div class="flex items-center gap-2 md:hidden">
+            <a 
+              href="https://mulebuy.com/register?ref=200520423" 
+              target="_blank"
+              rel="noopener noreferrer"
+              class="bg-gradient-to-r from-red-600 to-red-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all active:scale-95 whitespace-nowrap"
+              @click="trackSignup"
+            >
+              Sign up for $400 coupons
+            </a>
+            
+            <!-- Mobile Menu Button -->
+            <button @click="toggleMobileMenu" class="p-2">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -160,6 +173,24 @@ function performSearch() {
   if (searchValue.value.trim()) {
     router.push(`/products?q=${encodeURIComponent(searchValue.value)}`)
     closeSearch()
+  }
+}
+
+// Track sign up button click
+function trackSignup() {
+  console.log('Sign up button clicked - Ref: 200520423')
+  logEvent('signup_click', 'Mulebuy Register Header')
+}
+
+// Log analytics event
+async function logEvent(type, value) {
+  try {
+    await supabase.from('analytics_events').insert({
+      event_type: type,
+      event_value: value
+    })
+  } catch (error) {
+    console.error('Error logging event:', error)
   }
 }
 

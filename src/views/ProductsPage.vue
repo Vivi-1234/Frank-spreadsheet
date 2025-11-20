@@ -50,80 +50,86 @@
       <!-- Product Section -->
       <section class="-mt-6 fade-in-up">
         <!-- Filters & Sort -->
-        <div class="flex flex-row flex-wrap justify-center items-center gap-2 md:gap-3 mb-4 md:mb-6 relative z-20">
-          <!-- Sort -->
-          <div class="inline-flex items-center gap-1.5 md:gap-3 bg-white/5 border border-white/10 rounded-full px-1.5 h-9 md:h-11">
-            <span class="text-xs md:text-sm text-gray-400 ml-2 hidden md:inline">Sort:</span>
-            <button
-              @click="sortOrder = 'default'"
-              :class="[
-                'px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
-                sortOrder === 'default'
-                  ? 'bg-white text-black font-medium'
-                  : 'text-gray-400 hover:text-white'
-              ]"
-            >
-              Default
-            </button>
-            <button
-              @click="sortOrder = 'price_asc'"
-              :class="[
-                'px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
-                sortOrder === 'price_asc'
-                  ? 'bg-white text-black font-medium'
-                  : 'text-gray-400 hover:text-white'
-              ]"
-            >
-              Low-High
-            </button>
-            <button
-              @click="sortOrder = 'price_desc'"
-              :class="[
-                'px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
-                sortOrder === 'price_desc'
-                  ? 'bg-white text-black font-medium'
-                  : 'text-gray-400 hover:text-white'
-              ]"
-            >
-              High-Low
-            </button>
+        <div class="mb-4 md:mb-6 px-2">
+          <div class="flex flex-row flex-nowrap justify-center items-center gap-1.5 sm:gap-2 md:gap-3 overflow-x-auto scrollbar-hide relative">
+            <!-- Sort -->
+            <div class="inline-flex items-center gap-1 sm:gap-1.5 md:gap-3 bg-white/5 border border-white/10 rounded-full px-1 sm:px-1.5 h-9 md:h-11 flex-shrink-0">
+              <span class="text-xs md:text-sm text-gray-400 ml-2 hidden md:inline">Sort:</span>
+              <button
+                @click="sortOrder = 'default'"
+                :class="[
+                  'px-2 sm:px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                  sortOrder === 'default'
+                    ? 'bg-white text-black font-medium'
+                    : 'text-gray-400 hover:text-white'
+                ]"
+              >
+                Default
+              </button>
+              <button
+                @click="sortOrder = 'price_asc'"
+                :class="[
+                  'px-2 sm:px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                  sortOrder === 'price_asc'
+                    ? 'bg-white text-black font-medium'
+                    : 'text-gray-400 hover:text-white'
+                ]"
+              >
+                Low-High
+              </button>
+              <button
+                @click="sortOrder = 'price_desc'"
+                :class="[
+                  'px-2 sm:px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                  sortOrder === 'price_desc'
+                    ? 'bg-white text-black font-medium'
+                    : 'text-gray-400 hover:text-white'
+                ]"
+              >
+                High-Low
+              </button>
+            </div>
+            
+            <!-- Brand Dropdown Button -->
+            <div class="flex-shrink-0" ref="brandsDropdown">
+               <button
+                 @click.stop="toggleBrandsMenu"
+                 class="inline-flex items-center gap-1.5 sm:gap-2 bg-white/5 border border-white/10 rounded-full px-2.5 sm:px-3 md:px-4 h-9 md:h-11 text-xs md:text-sm text-gray-300 hover:text-white hover:bg-white/10 transition-all"
+               >
+                 <span class="text-gray-400 hidden md:inline">Brand:</span>
+                 <span class="font-medium text-white truncate max-w-[60px] sm:max-w-[80px] md:max-w-[120px]">{{ selectedBrandName }}</span>
+                 <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                 </svg>
+               </button>
+            </div>
           </div>
           
-          <!-- Brand Dropdown -->
-          <div class="relative" ref="brandsDropdown">
-             <button
-               @click.stop="toggleBrandsMenu"
-               class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 md:px-4 h-9 md:h-11 text-xs md:text-sm text-gray-300 hover:text-white hover:bg-white/10 transition-all"
-             >
-               <span class="text-gray-400 hidden md:inline">Brand:</span>
-               <span class="font-medium text-white truncate max-w-[80px] md:max-w-[120px]">{{ selectedBrandName }}</span>
-               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-               </svg>
-             </button>
-
-             <div
-               v-show="showBrandsMenu"
-               class="absolute left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 mt-2 w-64 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl py-1 max-h-80 overflow-y-auto z-50"
-             >
-               <a
-                 href="#"
-                 @click.prevent="selectBrand('all')"
-                 :class="['block px-4 py-2.5 text-sm transition-colors', currentBrand === 'all' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white']"
-               >
-                 All Brands
-               </a>
-               <a
-                 v-for="brand in brands"
-                 :key="brand.id"
-                 href="#"
-                 @click.prevent="selectBrand(brand.id)"
-                 :class="['block px-4 py-2.5 text-sm transition-colors', currentBrand == brand.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white']"
-               >
-                 {{ brand.name }}
-               </a>
-             </div>
-          </div>
+          <!-- Brand Dropdown Menu (Outside overflow container) -->
+          <Teleport to="body">
+            <div
+              v-show="showBrandsMenu"
+              :style="dropdownStyle"
+              class="fixed w-64 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl py-1 max-h-80 overflow-y-auto z-[9999]"
+            >
+              <a
+                href="#"
+                @click.prevent="selectBrand('all')"
+                :class="['block px-4 py-2.5 text-sm transition-colors', currentBrand === 'all' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white']"
+              >
+                All Brands
+              </a>
+              <a
+                v-for="brand in brands"
+                :key="brand.id"
+                href="#"
+                @click.prevent="selectBrand(brand.id)"
+                :class="['block px-4 py-2.5 text-sm transition-colors', currentBrand == brand.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white']"
+              >
+                {{ brand.name }}
+              </a>
+            </div>
+          </Teleport>
         </div>
 
         <!-- Category Filters -->
@@ -270,8 +276,36 @@ const selectedBrandName = computed(() => {
   return 'All Brands'
 })
 
+// Dropdown positioning
+const dropdownStyle = ref({})
+
+function updateDropdownPosition() {
+  if (brandsDropdown.value) {
+    const rect = brandsDropdown.value.getBoundingClientRect()
+    const isMobile = window.innerWidth < 768
+    
+    if (isMobile) {
+      // Center on mobile
+      dropdownStyle.value = {
+        top: `${rect.bottom + 8}px`,
+        left: '50%',
+        transform: 'translateX(-50%)'
+      }
+    } else {
+      // Align to right on desktop
+      dropdownStyle.value = {
+        top: `${rect.bottom + 8}px`,
+        left: `${rect.right - 256}px` // 256px = w-64
+      }
+    }
+  }
+}
+
 function toggleBrandsMenu() {
   showBrandsMenu.value = !showBrandsMenu.value
+  if (showBrandsMenu.value) {
+    updateDropdownPosition()
+  }
 }
 
 function selectBrand(brandId) {
@@ -291,7 +325,11 @@ function selectBrand(brandId) {
 }
 
 function handleClickOutside(event) {
-  if (brandsDropdown.value && !brandsDropdown.value.contains(event.target)) {
+  // Check if click is outside both the button and the dropdown menu
+  const clickedOutsideButton = brandsDropdown.value && !brandsDropdown.value.contains(event.target)
+  const clickedOutsideMenu = !event.target.closest('.fixed.w-64') // The dropdown menu class
+  
+  if (clickedOutsideButton && clickedOutsideMenu) {
     showBrandsMenu.value = false
   }
 }
@@ -521,10 +559,14 @@ onMounted(async () => {
   await loadProducts(true)
   setupInfiniteScroll()
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('scroll', updateDropdownPosition)
+  window.addEventListener('resize', updateDropdownPosition)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('scroll', updateDropdownPosition)
+  window.removeEventListener('resize', updateDropdownPosition)
   if (observer) {
     observer.disconnect()
   }
