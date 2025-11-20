@@ -10,6 +10,16 @@
 
           <!-- Desktop Nav -->
           <div class="hidden md:flex items-center gap-8">
+            <!-- Desktop Sign Up Button -->
+            <a 
+              href="https://mulebuy.com/register?ref=200520423" 
+              target="_blank"
+              rel="noopener noreferrer"
+              class="bg-gradient-to-r from-red-600 to-red-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all active:scale-95 hover:-translate-y-0.5"
+            >
+              Sign up for $400 coupons
+            </a>
+
             <nav class="flex items-center space-x-8">
               <router-link to="/" class="nav-link text-sm font-medium">Home</router-link>
               <router-link to="/products" class="nav-link text-sm font-medium">Products</router-link>
@@ -56,7 +66,6 @@
               target="_blank"
               rel="noopener noreferrer"
               class="bg-gradient-to-r from-red-600 to-red-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all active:scale-95 whitespace-nowrap"
-              @click="trackSignup"
             >
               Sign up for $400 coupons
             </a>
@@ -173,24 +182,6 @@ function performSearch() {
   if (searchValue.value.trim()) {
     router.push(`/products?q=${encodeURIComponent(searchValue.value)}`)
     closeSearch()
-  }
-}
-
-// Track sign up button click
-function trackSignup() {
-  console.log('Sign up button clicked - Ref: 200520423')
-  logEvent('signup_click', 'Mulebuy Register Header')
-}
-
-// Log analytics event
-async function logEvent(type, value) {
-  try {
-    await supabase.from('analytics_events').insert({
-      event_type: type,
-      event_value: value
-    })
-  } catch (error) {
-    console.error('Error logging event:', error)
   }
 }
 
