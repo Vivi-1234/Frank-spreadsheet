@@ -94,9 +94,12 @@ async function loadDashboardData(startDate, endDate) {
     const end = new Date(endDate)
     
     // Set to start and end of day in UTC
-    start.setUTCHours(0, 0, 0, 0)
-    end.setUTCHours(23, 59, 59, 999)
+    // Ensure we cover the full range by setting hours appropriately
+    start.setHours(0, 0, 0, 0)
+    end.setHours(23, 59, 59, 999)
     
+    // Format to ISO string but keep local timezone offset consideration if needed
+    // Supabase timestamptz expects ISO string
     const startStr = start.toISOString()
     const endStr = end.toISOString()
     
@@ -116,12 +119,14 @@ async function loadDashboardData(startDate, endDate) {
     let hasMore = true
     
     while (hasMore) {
-      const { data: pageData, error: pageError, count: totalCount } = await supabase
+      const { data: pageData, error: pageError, count: totalCountResult } = await supabase
         .from('analytics_events')
         .select('event_type, created_at', { count: 'exact' })
         .gte('created_at', startStr)
         .lte('created_at', endStr)
         .range(fetchedCount, fetchedCount + pageSize - 1)
+        .order('created_at', { ascending: true }) // Ensure consistent ordering
+
       
       if (pageError) {
         console.error('Error fetching page:', pageError)
@@ -131,8 +136,10 @@ async function loadDashboardData(startDate, endDate) {
       if (pageData && pageData.length > 0) {
         allRangeData = allRangeData.concat(pageData)
         fetchedCount += pageData.length
-        hasMore = pageData.length === pageSize && fetchedCount < totalCount
-        console.log(`Fetched ${fetchedCount} / ${totalCount} records`)
+        // Use totalCountResult if available, otherwise just check if page is full
+        const totalAvailable = totalCountResult !== null ? totalCountResult : Number.MAX_SAFE_INTEGER
+        hasMore = pageData.length === pageSize && fetchedCount < totalAvailable
+        console.log(`Fetched ${fetchedCount} records so far...`)
       } else {
         hasMore = false
       }
@@ -207,16 +214,16 @@ function renderCharts(data, startDate, endDate) {
   
   console.log('Generated date labels:', dateLabels.length, 'days from', dateLabels[0], 'to', dateLabels[dateLabels.length - 1])
 
-  // Process data
-  const visitsData = processDataForChart(visits, dateLabels)
-  const clicksData = processDataForChart(clicks, dateLabels)
-
-  // Render charts
+    // Process data
+    const visitsData = processDataForChart(visits, dateLabels, 'Site Visits')
+    const clicksData = processDataForChart(clicks, dateLabels, 'Product Clicks')
+  
+    // Render charts
   renderChart(visitsChart.value, 'line', dateLabels, visitsData, 'Site Visits', '#FFFFFF', 'rgba(255, 255, 255, 0.2)', visitsChartInstance)
   renderChart(clicksChart.value, 'line', dateLabels, clicksData, 'Product Clicks', '#AAAAAA', 'rgba(170, 170, 170, 0.2)', clicksChartInstance)
 }
 
-function processDataForChart(events, labels) {
+function processDataForChart(events, labels, labelType = '') {
   const dataMap = labels.reduce((acc, label) => {
     acc[label] = 0
     return acc
@@ -232,12 +239,14 @@ function processDataForChart(events, labels) {
     
     if (dataMap.hasOwnProperty(eventDate)) {
       dataMap[eventDate]++
-    } else {
-      console.warn('Date not in range:', eventDate, 'Event:', event)
     }
   })
   
-  console.log('Processed data map:', dataMap)
+  if (labelType) {
+    console.group(`📊 Raw Database Data: ${labelType}`)
+    console.table(Object.entries(dataMap).map(([date, count]) => ({ Date: date, Count: count })))
+    console.groupEnd()
+  }
 
   return Object.values(dataMap)
 }

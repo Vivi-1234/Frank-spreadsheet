@@ -13,12 +13,38 @@ export default defineConfig({
     // Code splitting optimization
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunk for large dependencies
-          'vendor': ['vue', 'vue-router'],
-          'supabase': ['@supabase/supabase-js'],
-          'charts': ['chart.js'],
-          'utils': ['sortablejs', 'flatpickr', 'xlsx']
+        manualChunks(id) {
+          // Vendor chunk for core dependencies (always needed)
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router')) {
+            return 'vendor'
+          }
+          
+          // Supabase (used across the app)
+          if (id.includes('node_modules/@supabase')) {
+            return 'supabase'
+          }
+          
+          // Admin-only heavy libraries (lazy loaded)
+          if (id.includes('node_modules/chart.js')) {
+            return 'charts'
+          }
+          
+          if (id.includes('node_modules/xlsx')) {
+            return 'xlsx'
+          }
+          
+          if (id.includes('node_modules/sortablejs')) {
+            return 'sortable'
+          }
+          
+          if (id.includes('node_modules/flatpickr')) {
+            return 'flatpickr'
+          }
+          
+          // Admin pages bundle
+          if (id.includes('/views/admin/')) {
+            return 'admin'
+          }
         }
       }
     },

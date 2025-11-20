@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { supabase } from '@/config/supabase'
 
 const routes = [
   {
@@ -80,6 +81,30 @@ const router = createRouter({
       return { top: 0 }
     }
   }
+})
+
+// Global Analytics Tracking
+router.afterEach((to) => {
+  // Log site visit
+  // We only log 'site_visit' here. 'product_click' is logged by specific actions.
+  // You can add filters here to ignore certain paths (e.g. /admin) if needed.
+  
+  // Don't log admin pages
+  if (to.path.startsWith('/admin')) return
+
+  const pageName = to.name || to.path
+  
+  // Use setTimeout to not block navigation
+  setTimeout(async () => {
+    try {
+      await supabase.from('analytics_events').insert({
+        event_type: 'site_visit',
+        event_value: pageName
+      })
+    } catch (error) {
+      console.error('Analytics error:', error)
+    }
+  }, 0)
 })
 
 export default router

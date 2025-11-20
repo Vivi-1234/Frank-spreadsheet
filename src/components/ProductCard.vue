@@ -123,10 +123,12 @@ const optimizedImageUrl = computed(() => {
   
   const url = props.product.image_url
   
-  // For Supabase storage URLs, add resize parameters
+  // For Supabase storage URLs, use wsrv.nl for global caching and WebP optimization
+  // This drastically reduces Supabase egress bandwidth and improves loading speed
   if (url.includes('supabase.co/storage')) {
-    const separator = url.includes('?') ? '&' : '?'
-    return `${url}${separator}width=400&height=400&resize=cover&quality=75`
+    // Remove protocol to prepare for wsrv.nl
+    const cleanUrl = url.replace(/^https?:\/\//, '')
+    return `https://wsrv.nl/?url=${cleanUrl}&w=400&h=400&fit=cover&a=top&output=webp`
   }
   
   // For Aliyun CDN (alicdn.com), keep original URL
@@ -160,14 +162,29 @@ const productUrl = computed(() => {
   return `${props.product.target_url}${separator}ref=200520423`
 })
 
-// Handle image loading error
+// Handle image loading error with fallback
 function handleImageError(event) {
+  const originalSrc = props.product.image_url
+  const currentSrc = event.target.src
+  const placeholder = 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'
+
+  // If current failed image is the optimized wsrv.nl one, try fallback to original Supabase URL
+  if (currentSrc.includes('wsrv.nl') && originalSrc) {
+    // Avoid infinite loop if original also fails
+    event.target.src = originalSrc
+    
+    // Optional: Log the CDN failure so you know about it
+    console.warn('CDN image failed, falling back to original:', originalSrc)
+    return
+  }
+
+  // If it's already the original or something else failed, show placeholder
   console.error('Image failed to load:', {
-    original_src: props.product.image_url,
+    original_src: originalSrc,
     product_name: props.product.name,
     error_event: event
   })
-  event.target.src = 'https://placehold.co/400x400/1a1a1a/9CA3AF?text=NO+IMAGE'
+  event.target.src = placeholder
 }
 
 // Handle click event

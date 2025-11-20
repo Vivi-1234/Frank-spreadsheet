@@ -82,6 +82,19 @@ const stats = ref({
 function trackSignup() {
   console.log('Sign up button clicked - Ref: 200520423')
   // Analytics tracking can be added here
+  logEvent('signup_click', 'Mulebuy Register')
+}
+
+// Log analytics event
+async function logEvent(type, value) {
+  try {
+    await supabase.from('analytics_events').insert({
+      event_type: type,
+      event_value: value
+    })
+  } catch (error) {
+    console.error('Error logging event:', error)
+  }
 }
 
 onMounted(async () => {

@@ -18,6 +18,7 @@
           v-if="social.icon_url"
           :src="social.icon_url"
           :alt="social.platform_name"
+          loading="lazy"
           class="w-full h-full object-cover rounded-full"
           style="box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);"
         />
@@ -28,11 +29,14 @@
     <main class="container mx-auto px-4 sm:px-6 lg:px-8">
       <!-- Hero Section -->
       <section class="text-center py-16 md:py-24 relative overflow-hidden rounded-lg fade-in-up" style="pointer-events: none;">
-        <div
+        <!-- Optimized background image using <img> instead of CSS background for better preloading -->
+        <img
           v-if="siteSettings.hero_bg_url"
-          :style="{ backgroundImage: `url(${siteSettings.hero_bg_url})` }"
-          class="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-500 opacity-20"
-        ></div>
+          :src="siteSettings.hero_bg_url"
+          alt="Hero Background"
+          fetchpriority="high"
+          class="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500 opacity-20"
+        />
         <div class="relative">
           <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight text-white">
             {{ siteSettings.main_title || "Frank's Best Overseas Finds" }}
@@ -45,14 +49,15 @@
 
       <!-- Product Section -->
       <section class="-mt-6 fade-in-up">
-        <!-- Price Sort -->
-        <div class="flex justify-center mb-4 md:mb-6 relative">
-          <div class="inline-flex items-center gap-1.5 md:gap-3 bg-white/5 border border-white/10 rounded-full px-2 md:px-4 py-1.5 md:py-2 relative z-10">
-            <span class="text-xs md:text-sm text-gray-400">Sort:</span>
+        <!-- Filters & Sort -->
+        <div class="flex flex-row flex-wrap justify-center items-center gap-2 md:gap-3 mb-4 md:mb-6 relative z-20">
+          <!-- Sort -->
+          <div class="inline-flex items-center gap-1.5 md:gap-3 bg-white/5 border border-white/10 rounded-full px-1.5 h-9 md:h-11">
+            <span class="text-xs md:text-sm text-gray-400 ml-2 hidden md:inline">Sort:</span>
             <button
               @click="sortOrder = 'default'"
               :class="[
-                'px-2.5 md:px-3 py-1.5 md:py-2 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                'px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
                 sortOrder === 'default'
                   ? 'bg-white text-black font-medium'
                   : 'text-gray-400 hover:text-white'
@@ -63,7 +68,7 @@
             <button
               @click="sortOrder = 'price_asc'"
               :class="[
-                'px-2.5 md:px-3 py-1.5 md:py-2 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                'px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
                 sortOrder === 'price_asc'
                   ? 'bg-white text-black font-medium'
                   : 'text-gray-400 hover:text-white'
@@ -74,7 +79,7 @@
             <button
               @click="sortOrder = 'price_desc'"
               :class="[
-                'px-2.5 md:px-3 py-1.5 md:py-2 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
+                'px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-full transition-all duration-200 whitespace-nowrap',
                 sortOrder === 'price_desc'
                   ? 'bg-white text-black font-medium'
                   : 'text-gray-400 hover:text-white'
@@ -82,6 +87,42 @@
             >
               High-Low
             </button>
+          </div>
+          
+          <!-- Brand Dropdown -->
+          <div class="relative" ref="brandsDropdown">
+             <button
+               @click.stop="toggleBrandsMenu"
+               class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 md:px-4 h-9 md:h-11 text-xs md:text-sm text-gray-300 hover:text-white hover:bg-white/10 transition-all"
+             >
+               <span class="text-gray-400 hidden md:inline">Brand:</span>
+               <span class="font-medium text-white truncate max-w-[80px] md:max-w-[120px]">{{ selectedBrandName }}</span>
+               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+               </svg>
+             </button>
+
+             <div
+               v-show="showBrandsMenu"
+               class="absolute left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0 mt-2 w-64 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl py-1 max-h-80 overflow-y-auto z-50"
+             >
+               <a
+                 href="#"
+                 @click.prevent="selectBrand('all')"
+                 :class="['block px-4 py-2.5 text-sm transition-colors', currentBrand === 'all' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white']"
+               >
+                 All Brands
+               </a>
+               <a
+                 v-for="brand in brands"
+                 :key="brand.id"
+                 href="#"
+                 @click.prevent="selectBrand(brand.id)"
+                 :class="['block px-4 py-2.5 text-sm transition-colors', currentBrand == brand.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white']"
+               >
+                 {{ brand.name }}
+               </a>
+             </div>
           </div>
         </div>
 
@@ -188,18 +229,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '@/config/supabase'
+import { getCachedData, setCachedData } from '@/utils/cache'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import ProductCard from '@/components/ProductCard.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 // State
 const products = ref([])
 const categories = ref([])
+const brands = ref([])
+const showBrandsMenu = ref(false)
+const brandsDropdown = ref(null)
 const socialLinks = ref([])
 const siteSettings = ref({
   main_title: "Frank's Best Overseas Finds",
@@ -216,7 +262,58 @@ const pageSize = 48
 const exchangeRate = 0.14 // CNY to USD
 const sortOrder = ref('default') // 'default', 'price_asc', 'price_desc'
 
+const selectedBrandName = computed(() => {
+  if (currentBrand.value && currentBrand.value !== 'all') {
+    const brand = brands.value.find(b => b.id.toString() === currentBrand.value.toString())
+    return brand ? brand.name : 'All Brands'
+  }
+  return 'All Brands'
+})
+
+function toggleBrandsMenu() {
+  showBrandsMenu.value = !showBrandsMenu.value
+}
+
+function selectBrand(brandId) {
+  showBrandsMenu.value = false
+  currentBrand.value = brandId
+  
+  // Update URL
+  const query = { ...route.query }
+  if (brandId === 'all') {
+    delete query.brand
+  } else {
+    query.brand = brandId
+  }
+  router.push({ query })
+  
+  loadProducts(true)
+}
+
+function handleClickOutside(event) {
+  if (brandsDropdown.value && !brandsDropdown.value.contains(event.target)) {
+    showBrandsMenu.value = false
+  }
+}
+
 let observer = null
+
+// Load brands
+async function loadBrands() {
+  const cachedBrands = getCachedData('frank_brands')
+  if (cachedBrands) {
+    brands.value = cachedBrands
+  } else {
+    const { data } = await supabase
+      .from('brands')
+      .select('*')
+      .order('name')
+    if (data) {
+      brands.value = data
+      setCachedData('frank_brands', data)
+    }
+  }
+}
 
 // Load site settings
 async function loadSiteSettings() {
@@ -345,10 +442,10 @@ async function loadProducts(reset = false) {
       }
     }
     
-    // Log site visit
-    if (currentPage.value === 1) {
-      logSiteVisit()
-    }
+    // Log site visit - REMOVED (Handled by Global Router)
+    // if (currentPage.value === 1) {
+    //   logSiteVisit()
+    // }
   } catch (error) {
     console.error('Error loading products:', error)
   } finally {
@@ -418,13 +515,16 @@ onMounted(async () => {
   await Promise.all([
     loadSiteSettings(),
     loadCategories(),
+    loadBrands(),
     loadSocialLinks()
   ])
   await loadProducts(true)
   setupInfiniteScroll()
+  document.addEventListener('click', handleClickOutside)
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
   if (observer) {
     observer.disconnect()
   }

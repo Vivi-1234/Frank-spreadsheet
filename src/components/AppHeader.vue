@@ -14,39 +14,8 @@
               <router-link to="/" class="nav-link text-sm font-medium">Home</router-link>
               <router-link to="/products" class="nav-link text-sm font-medium">Products</router-link>
               
-              <!-- Brands Dropdown -->
-              <div class="relative" ref="brandsDropdown">
-                <button
-                  @click.stop="toggleBrandsMenu"
-                  class="nav-link text-sm font-medium flex items-center gap-1"
-                >
-                  {{ selectedBrandName }}
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                <div
-                  v-show="showBrandsMenu"
-                  class="absolute right-0 mt-2 w-48 bg-bg-card rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1 max-h-96 overflow-y-auto"
-                >
-                  <a
-                    href="#"
-                    @click.prevent="selectBrand('all')"
-                    class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
-                  >
-                    All Brands
-                  </a>
-                  <a
-                    v-for="brand in brands"
-                    :key="brand.id"
-                    href="#"
-                    @click.prevent="selectBrand(brand.id)"
-                    class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
-                  >
-                    {{ brand.name }}
-                  </a>
-                </div>
-              </div>
+              <!-- Brands Dropdown Removed -->
+
 
               <router-link to="/how-to-buy" class="nav-link text-sm font-medium">How-to-buy</router-link>
             </nav>
@@ -131,44 +100,8 @@
           Products
         </router-link>
         
-        <!-- Mobile Brands -->
-        <div class="mobile-brands-section">
-          <button
-            @click="toggleMobileBrandsMenu"
-            class="mobile-nav-link text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 px-4 py-3 rounded-lg transition-all duration-200 flex justify-between items-center w-full"
-          >
-            Brands
-            <svg 
-              :class="['w-5 h-5 transition-transform duration-200', showMobileBrandsMenu ? 'rotate-180' : '']" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <div 
-            v-show="showMobileBrandsMenu" 
-            class="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1 max-h-64 overflow-y-auto"
-          >
-            <a 
-              href="#" 
-              @click.prevent="selectBrand('all'); toggleMobileMenu()" 
-              class="block py-2 px-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded transition-all duration-200"
-            >
-              All Brands
-            </a>
-            <a
-              v-for="brand in brands"
-              :key="brand.id"
-              href="#"
-              @click.prevent="selectBrand(brand.id); toggleMobileMenu()"
-              class="block py-2 px-3 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded transition-all duration-200"
-            >
-              {{ brand.name }}
-            </a>
-          </div>
-        </div>
+        <!-- Mobile Brands Removed -->
+
 
         <router-link 
           to="/how-to-buy" 
@@ -191,47 +124,17 @@ import { getCachedData, setCachedData } from '@/utils/cache'
 const router = useRouter()
 const route = useRoute()
 
-const brands = ref([])
-const showBrandsMenu = ref(false)
-const showMobileBrandsMenu = ref(false)
 const showMobileMenu = ref(false)
 const showSearch = ref(false)
 const searchValue = ref('')
 const searchInput = ref(null)
-const brandsDropdown = ref(null)
 
 let closeSearchTimeout = null
-
-const selectedBrandName = computed(() => {
-  if (route.query.brand && route.query.brand !== 'all') {
-    const brand = brands.value.find(b => b.id.toString() === route.query.brand)
-    return brand ? brand.name : 'Brands'
-  }
-  return 'Brands'
-})
-
-function toggleBrandsMenu() {
-  showBrandsMenu.value = !showBrandsMenu.value
-}
-
-function toggleMobileBrandsMenu() {
-  showMobileBrandsMenu.value = !showMobileBrandsMenu.value
-}
 
 function toggleMobileMenu() {
   showMobileMenu.value = !showMobileMenu.value
 }
 
-function selectBrand(brandId) {
-  showBrandsMenu.value = false
-  showMobileBrandsMenu.value = false
-  
-  if (brandId === 'all') {
-    router.push('/products')
-  } else {
-    router.push(`/products?brand=${brandId}`)
-  }
-}
 
 function openSearch() {
   showSearch.value = true
@@ -260,37 +163,16 @@ function performSearch() {
   }
 }
 
-function handleClickOutside(event) {
-  if (brandsDropdown.value && !brandsDropdown.value.contains(event.target)) {
-    showBrandsMenu.value = false
-  }
-}
-
 onMounted(async () => {
-  // Load brands
-  const cachedBrands = getCachedData('frank_brands')
-  if (cachedBrands) {
-    brands.value = cachedBrands
-  } else {
-    const { data } = await supabase
-      .from('brands')
-      .select('*')
-      .order('name')
-    if (data) {
-      brands.value = data
-      setCachedData('frank_brands', data)
-    }
-  }
-
-  document.addEventListener('click', handleClickOutside)
+  // Brands loading removed from header
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
   if (closeSearchTimeout) {
     clearTimeout(closeSearchTimeout)
   }
 })
+
 </script>
 
 <style scoped>
